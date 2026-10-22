@@ -97,8 +97,16 @@
   }
 
   // ---------- rendering ----------
+  // While a mouse press is in progress, redrawing the panels would replace the element under the pointer and the
+  // click would be lost. So hold redraws until the click has been handled, then catch up once.
+  let uiHold = false, renderPending = false, holdTimer = null;
+  function releaseHold() { uiHold = false; clearTimeout(holdTimer); if (renderPending && data) { renderPending = false; render(); } }
+  document.addEventListener('pointerdown', () => { uiHold = true; clearTimeout(holdTimer); holdTimer = setTimeout(releaseHold, 700); }, true);
+  document.addEventListener('click', () => setTimeout(releaseHold, 0), true);
+
   function render() {
     if (!data) return;
+    if (uiHold) { renderPending = true; return; }
     const s = current(), k = data.kpis[$('strategy').value];
     const live = t >= data.committed_time;
 
@@ -127,9 +135,16 @@
     const select = $('vehicle-select');
     const available = s.vehicles.filter(v => v.status !== 'broken');
     const previous = select.value;
-    select.innerHTML = available.map(v => `<option value="${v.id}">Vehicle ${v.id} · ${v.status} · ${v.pending_count} pending</option>`).join('');
-    if (available.some(v => String(v.id) === previous)) select.value = previous;
-    else if (available.some(v => v.id === selected)) select.value = selected;
+    const label = v => `Vehicle ${v.id} · ${(v.activity || {}).kind || v.status} · ${v.pending_count} pending`;
+    const idList = available.map(v => v.id).join(',');
+    if (select.dataset.ids !== idList) {
+      select.innerHTML = available.map(v => `<option value="${v.id}">${label(v)}</option>`).join('');
+      select.dataset.ids = idList;
+      if (available.some(v => String(v.id) === previous)) select.value = previous;
+      else if (available.some(v => v.id === selected)) select.value = selected;
+    } else {
+      available.forEach((v, i) => { select.options[i].textContent = label(v); });   // same trucks: keep the open list untouched
+    }
     select.disabled = !live || !available.length;
     $('break').disabled = select.disabled;
     $('order-fields').disabled = !live;
@@ -727,7 +742,7 @@
       sel.hidden = true;
       const box = document.createElement('div');
       box.className = 'stepper'; box.tabIndex = 0; box.setAttribute('role', 'group'); box.setAttribute('aria-label', sel.id);
-      box.innerHTML = '<button type="button" class="st-arrow" aria-label="Previous">‹</button><div class="st-mid"><span class="st-name"></span><span class="st-dots"></span></div><button type="button" class="st-arrow" aria-label="Next">›</button>';
+      box.innerHTML = '<button type="button" class="st-arrow" aria-label="Previous"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 6.5L9 12l5.5 5.5"/></svg></button><div class="st-mid"><span class="st-name"></span><span class="st-dots"></span></div><button type="button" class="st-arrow" aria-label="Next"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 6.5L15 12l-5.5 5.5"/></svg></button>';
       sel.insertAdjacentElement('afterend', box);
       const sync = () => {
         box.querySelector('.st-name').textContent = sel.selectedOptions[0] ? sel.selectedOptions[0].textContent : '';
@@ -916,9 +931,10 @@
     if (wanted > 0) first = await api(`/state?t=${wanted}`);
     if (params.has('truck')) { selected = Number(params.get('truck')); cardOpen = true; }
     accept(first);
-    const wantsOps = params.has('t') || params.has('truck') || params.get('clean') || params.get('view') === 'ops';
-    if (wantsOps) showView('ops');
-    else if (['vehicle', 'compare', 'orders', 'analytics', 'home', 'book'].includes(params.get('view'))) showView(params.get('view'));
+    // An explicit ?view= wins; otherwise a link with a time, truck or clean opens the dashboard; no options opens Home.
+    const named = params.get('view');
+    if (['vehicle', 'compare', 'orders', 'analytics', 'home', 'book', 'ops'].includes(named)) showView(named);
+    else if (params.has('t') || params.has('truck') || params.get('clean')) showView('ops');
     $('order-ready').value = Math.round(first.time); $('order-due').value = first.max_time;
     say(`${first.dataset} is loaded. Move the slider or press Play.`);
   }).catch(() => {});

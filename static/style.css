@@ -505,3 +505,10 @@ select option:checked,select option:hover{background-color:#3a3d18;color:#f4f4f4
 .st-arrow{border:1px solid rgba(206,222,98,.6);color:#dcea78;background:#12140a}
 .st-arrow:hover{border-color:#cede62;color:#f4ffa0;background:#1b2009;box-shadow:0 0 0 3px rgba(206,222,98,.12)}
 .stepper:focus-visible .st-arrow{border-color:#cede62}
+
+/* centred chevrons */
+.st-arrow{display:grid;place-items:center;line-height:0;font-size:0}
+.st-arrow svg{width:56%;height:56%;fill:none;stroke:currentColor;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round;display:block}
+.st-arrow svg{width:12px;height:12px}
+.sel-inline .st-arrow svg{width:18px;height:18px}
+.playbar .sel-inline .st-arrow svg{width:14px;height:14px}

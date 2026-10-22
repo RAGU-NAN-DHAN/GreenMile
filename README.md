@@ -52,10 +52,19 @@ routing need an internet connection; the plain x/y map and straight-line mode wo
 6. The 📍 button places the depot at an exact point on the street map and re-plans around it. The
    default depot is on Jimmy Carter Road at VIT Vellore.
 
-Other pages (sidebar): **Orders** lists every order with status, truck, window, planned arrival and slack
-(filter, search, sort) and has a three-step **Book an order** panel (search or pin a location, parcel
-size, delivery time) that shows how each strategy would handle the new order. **Analytics** charts orders
-delivered, orders left unassigned, fleet activity and distance per strategy, with the event history.
+Pages (sidebar, and the logo opens Home): **Home** is the landing page with a live briefing (delivery
+progress, fleet status, next deadlines and which strategy is winning). **Map** is the dashboard: map with
+moving trucks, **Change the day** under it, and the Fleet list on the side. **Orders** lists every order
+with status, truck, window, planned arrival, slack and parcel weight/volume (filter, search, sort).
+**Book** is a three-step booking page (search or pin a place, parcel size, delivery time) that shows how
+each strategy handles the new order and how much space each truck has. **Trucks** shows one truck's cargo
+and orders. **Analytics** charts orders delivered, orders left unassigned, fleet activity and delivery per
+strategy, with the event history. **Compare** shows the three strategies side by side.
+
+Trucks light up by state: broken = light red, idle = dim white, in use = bright yellow headlight.
+Parcel sizes: one load unit is 5 kg and 0.03 m3, so Small = 25 kg / 0.15 m3, Medium = 50 kg / 0.30 m3,
+Large = 100 kg / 0.60 m3, and a 200-unit truck carries 1000 kg / 6 m3. A truck's load is the parcels still
+on board (assigned, not yet delivered).
 
 Switch **Distance** to Straight-line to reproduce the benchmark metric exactly.
 
