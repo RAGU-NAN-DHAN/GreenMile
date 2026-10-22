@@ -41,13 +41,15 @@ def prefetch(problem, points):
 
 
 def fetch_table(latlngs):
-    """Driving distance matrix in metres (None where no route exists) from the OSRM demo server."""
+    """(distance matrix in metres, snapped on-road lat/lng per point) from the OSRM demo server."""
     coords = ";".join(f"{lng},{lat}" for lat, lng in latlngs)
     try:
         response = httpx.get(OSRM_TABLE.format(coords=coords), timeout=20,
                              headers={"User-Agent": "GreenMile-student-demo"})
         response.raise_for_status()
-        return response.json()["distances"]
+        body = response.json()
+        snapped = [(round(w["location"][1], 5), round(w["location"][0], 5)) for w in body["sources"]]
+        return body["distances"], snapped
     except (httpx.HTTPError, KeyError, ValueError) as exc:
         raise RoadError(str(exc)) from exc
 
@@ -60,6 +62,7 @@ class RoadMetric:
         self.table = table or fetch_table   # resolved at call time so tests can replace fetch_table
         self.origin = origin or CITIES[city]   # lat/lng that the plane point `centre` maps to
         self.cache = {}
+        self.snap = {}                        # placed lat/lng -> nearest on-road lat/lng
         self.lock = RLock()
         self.ratio = 1.4                       # road / straight, replaced by calibration
         self.degraded = False                  # True once any distance had to be estimated
@@ -82,6 +85,18 @@ class RoadMetric:
         return (round(lat0 + (y - self.centre[1]) * PLACE_M / 111320, 5),
                 round(lng0 + (x - self.centre[0]) * PLACE_M / (111320 * math.cos(lat0 * math.pi / 180)), 5))
 
+    def _table(self, unique):
+        """Call the table function; tolerate fakes that return only a matrix (no snapping)."""
+        result = self.table(unique)
+        if isinstance(result, tuple):
+            return result
+        return result, list(unique)
+
+    def snapped_latlng(self, x, y):
+        """Where this plane point actually sits on the road network (falls back to the placed point)."""
+        placed = self.latlng(x, y)
+        return self.snap.get(placed, placed)
+
     def _estimate_metres(self, x1, y1, x2, y2):
         return math.hypot(x2 - x1, y2 - y1) * PLACE_M * self.ratio
 
@@ -91,11 +106,12 @@ class RoadMetric:
             if all((a, b) in self.cache for a in unique for b in unique if a != b) or len(unique) > MAX_TABLE:
                 return
         try:
-            matrix = self.table(unique)
+            matrix, snapped = self._table(unique)
         except RoadError:
             self.degraded = True
             return
         with self.lock:
+            self.snap.update(zip(unique, snapped))
             for i, a in enumerate(unique):
                 for j, b in enumerate(unique):
                     if i != j and matrix[i][j] is not None:
@@ -135,7 +151,8 @@ class RoadMetric:
         metric = cls.for_problem(problem, city, table, anchor)
         points = [(c.x, c.y) for c in problem.nodes]
         unique = list(dict.fromkeys(metric.latlng(x, y) for x, y in points))
-        matrix = metric.table(unique)
+        matrix, snapped = metric._table(unique)
+        metric.snap.update(zip(unique, snapped))
         road = straight = 0.0
         for i, a in enumerate(unique):
             for j, b in enumerate(unique):

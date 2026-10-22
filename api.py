@@ -115,6 +115,20 @@ def event_summary(event):
     return {key: event[key] for key in ("type", "time", "payload", "strategies")}
 
 
+def snapped(x, y):
+    """On-road lat/lng for a plane point (road mode only), so markers never sit in water or off-road."""
+    if session_metric is None:
+        return {}
+    lat, lng = session_metric.snapped_latlng(x, y)
+    return {"lat": lat, "lng": lng}
+
+
+def snapped_pair(a, b):
+    if session_metric is None:
+        return {}
+    return {"al": list(session_metric.snapped_latlng(*a)), "bl": list(session_metric.snapped_latlng(*b))}
+
+
 def chart_state(snapshot):
     t = snapshot["t"]
     routes, vehicles, assignment = [], [], {}
@@ -130,7 +144,7 @@ def chart_state(snapshot):
             a, b = [segment["x1"], segment["y1"]], [segment["x2"], segment["y2"]]
             span = segment["end"]-segment["start"]
             progress = 1.0 if segment["end"] <= t else 0.0 if segment["start"] >= t or span <= 0 else (t-segment["start"])/span
-            legs.append({"a": a, "b": b, "p": progress})
+            legs.append({"a": a, "b": b, "p": progress, **snapped_pair(a, b)})
             if segment["end"] <= t:
                 past.append([a, b])
             elif segment["start"] >= t:
@@ -140,15 +154,16 @@ def chart_state(snapshot):
                 middle = [a[0]+(b[0]-a[0])*f, a[1]+(b[1]-a[1])*f]
                 past.append([a, middle]); future.append([middle, b])
         routes.append({"vehicle_id": int(key), "past": past, "future": future, "legs": legs})
-        vehicles.append({"id": int(key), "x": vehicle["x"], "y": vehicle["y"],
+        vehicles.append({"id": int(key), "x": vehicle["x"], "y": vehicle["y"], **snapped(vehicle["x"], vehicle["y"]),
                          "status": vehicle["status"], "used_capacity": vehicle["used_capacity"],
                          "capacity": vehicle["capacity"], "pending_count": future_count,
                          "served_count": len(vehicle["served"]), "distance_travelled": vehicle["distance_travelled"]})
     unassigned = set(snapshot["unassigned_pool"])
-    customers = [{**customer, "status": "unassigned" if int(i) in unassigned else snapshot["node_status"][int(i)],
+    customers = [{**customer, **snapped(customer["x"], customer["y"]), "status": "unassigned" if int(i) in unassigned else snapshot["node_status"][int(i)],
                   "vehicle_id": assignment.get(int(i))}
                  for i, customer in snapshot["customers"].items() if int(i) != 0]
-    return {"depot": snapshot["customers"]["0"], "customers": customers,
+    depot = {**snapshot["customers"]["0"], **snapped(snapshot["customers"]["0"]["x"], snapshot["customers"]["0"]["y"])}
+    return {"depot": depot, "customers": customers,
             "vehicles": vehicles, "routes": routes, "last_solve": snapshot["last_solve"]}
 
 

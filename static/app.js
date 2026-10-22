@@ -191,6 +191,8 @@
     const s = current();
     if (typeof L === 'undefined') { say('The street map library did not load. Switching back to the plain map.', true); mode = 'plain'; return drawMap(); }
     const ll = (x, y) => toLatLng(x, y);
+    // Road mode: the backend sends the nearest on-road point for every node, so nothing is drawn in water.
+    const cl = o => o.lat !== undefined ? [o.lat, o.lng] : ll(o.x, o.y);
     if (!lmap) {
       lmap = L.map('lmap', {zoomControl: false, attributionControl: true, preferCanvas: true});
       L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',
@@ -214,7 +216,7 @@
     s.routes.forEach(route => {
       const isSel = route.vehicle_id === selected;
       route.legs.forEach(leg => {
-        const p = ll(...leg.a), q = ll(...leg.b);
+        const p = leg.al || ll(...leg.a), q = leg.bl || ll(...leg.b);
         if (p[0] === q[0] && p[1] === q[1]) return;
         const key = legKey(p, q);
         let road = roads.get(key);
@@ -231,24 +233,24 @@
     });
     if (data.routing !== 'road') $('c-road').textContent = legsTotal ? `${(roadMetres / 1000).toFixed(1)} km${legsLoaded < legsTotal ? '…' : ''}` : '–';
     s.customers.forEach(c => {
-      L.circleMarker(ll(c.x, c.y), {radius: c.status === 'servicing' ? 8 : 6, color: '#040404', weight: 1, fillColor: STATUS_COLOURS[c.status], fillOpacity: 1})
+      L.circleMarker(cl(c), {radius: c.status === 'servicing' ? 8 : 6, color: '#040404', weight: 1, fillColor: STATUS_COLOURS[c.status], fillOpacity: 1})
         .bindTooltip(`Order ${c.id} · ${c.status}<br>Demand ${c.demand} · window ${c.ready}–${c.due}<br>Vehicle ${c.vehicle_id ?? 'unassigned'}`).addTo(llayer);
-      if (showAlerts && c.status === 'unassigned') L.circleMarker(ll(c.x, c.y), {radius: 13, color: '#e5604d', weight: 2, fill: false, interactive: false}).addTo(llayer);
+      if (showAlerts && c.status === 'unassigned') L.circleMarker(cl(c), {radius: 13, color: '#e5604d', weight: 2, fill: false, interactive: false}).addTo(llayer);
     });
     s.vehicles.filter(v => filter === 'all' || group(v.status) === filter).forEach(v => {
       const cls = v.status === 'broken' ? 'broken' : v.id === selected ? 'sel' : '';
-      L.marker(vehiclePoint[v.id] || ll(v.x, v.y), {icon: L.divIcon({className: '', html: `<div class="vmark ${cls}"></div>`, iconSize: [16, 16], iconAnchor: [8, 8]}), zIndexOffset: v.id === selected ? 1000 : 0})
+      L.marker(vehiclePoint[v.id] || cl(v), {icon: L.divIcon({className: '', html: `<div class="vmark ${cls}"></div>`, iconSize: [16, 16], iconAnchor: [8, 8]}), zIndexOffset: v.id === selected ? 1000 : 0})
         .bindTooltip(`Vehicle ${v.id} · ${v.status}<br>Load ${v.used_capacity}/${v.capacity}`)
         .on('click', () => { selected = v.id; render(); }).addTo(llayer);
     });
-    L.marker(ll(s.depot.x, s.depot.y), {icon: L.divIcon({className: '', html: '<div class="vmark" style="transform:rotate(45deg);background:#fff"></div>', iconSize: [16, 16], iconAnchor: [8, 8]})})
+    L.marker(cl(s.depot), {icon: L.divIcon({className: '', html: '<div class="vmark" style="transform:rotate(45deg);background:#fff"></div>', iconSize: [16, 16], iconAnchor: [8, 8]})})
       .bindTooltip(`Depot · closes at ${data.max_time}`).addTo(llayer);
 
     const key = `${data.session_id}-${viewRev}`;
     lmap.invalidateSize();
     if (fitted !== key) {
       fitted = key;
-      lmap.fitBounds(L.latLngBounds(s.customers.map(c => ll(c.x, c.y)).concat([ll(s.depot.x, s.depot.y)])), {padding: [40, 40]});
+      lmap.fitBounds(L.latLngBounds(s.customers.map(c => cl(c)).concat([cl(s.depot)])), {padding: [40, 40]});
     }
     $('lmap').style.cursor = placing ? 'crosshair' : '';
   }

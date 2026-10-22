@@ -71,3 +71,24 @@ def test_vit_defaults_to_the_amazon_point_on_jimmy_carter_road(monkeypatch):
     state = TestClient(api.app).post("/load", json={"dataset": "C101", "reset": True, "routing": "road", "city": "vit"}).json()
     assert (state["geo"]["lat0"], state["geo"]["lng0"]) == metric.DEFAULT_DEPOT["vit"]
     assert state["geo"]["cx"] == 40 and state["geo"]["cy"] == 50      # C101 depot in Solomon units
+
+
+def test_markers_use_snapped_on_road_points(monkeypatch):
+    def snapping_table(latlngs):
+        shifted = [(round(lat + 0.0001, 5), round(lng, 5)) for lat, lng in latlngs]   # "nearest road" is 0.0001 deg north
+        return fake_table(latlngs), shifted
+    monkeypatch.setattr(metric, "fetch_table", snapping_table)
+    client = TestClient(api.app)
+    state = client.post("/load", json={"dataset": "C101", "reset": True, "routing": "road", "city": "vit"}).json()
+    s = state["strategies"]["replan"]
+    placed_lat = state["geo"]["lat0"] + (s["customers"][0]["y"] - state["geo"]["cy"]) * 80 / 111320
+    assert s["customers"][0]["lat"] == pytest.approx(placed_lat + 0.0001, abs=2e-5)
+    assert "lat" in s["depot"] and all("lat" in v for v in s["vehicles"])
+    assert all("al" in leg and "bl" in leg for r in s["routes"] for leg in r["legs"])
+
+
+def test_straight_line_mode_has_no_snapped_fields():
+    client = TestClient(api.app)
+    state = client.post("/load", json={"dataset": "C101", "reset": True, "routing": "euclid"}).json()
+    s = state["strategies"]["replan"]
+    assert "lat" not in s["customers"][0] and "lat" not in s["depot"]

@@ -396,3 +396,8 @@ real kilometres = distance x metres-per-unit / 1000 (shown in the Road chip).
   be avoided by the routing service, so routes inside a campus can detour via public roads.
 - If the routing service is unreachable, loading in road mode fails with a clear message
   (use Straight-line); distances that cannot be fetched mid-session fall back to estimates.
+
+In road mode every customer, vehicle and the depot is snapped to the nearest drivable road
+(OSRM returns the snapped point with each distance table), so nothing is drawn in a lake or
+off-road. Snapping can move a point by a few hundred metres (R101 at VIT: median 67 m, max 363 m);
+distances are measured between the snapped points.
