@@ -4,18 +4,19 @@
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
   <title>GreenMile — Operations</title>
   <link rel="icon" type="image/svg+xml" href="/static/logo.svg">
-  <link rel="stylesheet" href="/static/style.css?v=13">
+  <link rel="stylesheet" href="/static/style.css?v=16">
   <link rel="stylesheet" href="/static/vendor/leaflet/leaflet.css">
   <script defer src="/static/vendor/plotly.min.js"></script>
   <script defer src="/static/vendor/leaflet/leaflet.js"></script>
-  <script defer src="/static/app.js?v=13"></script>
+  <script defer src="/static/app.js?v=16"></script>
 </head>
 <body>
 <div class="shell">
   <nav class="sidebar" aria-label="Main">
-    <img class="logo" src="/static/logo.svg" alt="GreenMile" title="GreenMile">
+    <button class="logo-btn" id="logo-home" aria-label="Home" title="Home"><img class="logo" src="/static/logo.svg" alt="GreenMile"></button>
     <button class="nav active" data-view="ops" aria-label="Map" title="Operations map"><svg viewBox="0 0 24 24"><path d="M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2z"/><path d="M9 4v14M15 6v14"/></svg><span>Map</span></button>
     <button class="nav" data-view="orders" aria-label="Orders" title="Orders and booking"><svg viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13"/><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/></svg><span>Orders</span></button>
+    <button class="nav" data-view="book" aria-label="Book" title="Book an order"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="4"/><path d="M12 8v8M8 12h8"/></svg><span>Book</span></button>
     <button class="nav" data-view="vehicle" aria-label="Trucks" title="Truck detail"><svg viewBox="0 0 24 24"><path d="M2 7h11v9H2z"/><path d="M13 10h4l4 4v2h-8z"/><circle cx="6" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg><span>Trucks</span></button>
     <button class="nav" data-view="analytics" aria-label="Analytics" title="Analytics"><svg viewBox="0 0 24 24"><path d="M4 20V11M10 20V4M16 20v-6M22 20H2"/></svg><span>Analytics</span></button>
     <button class="nav" data-view="compare" aria-label="Compare" title="Strategy comparison"><svg viewBox="0 0 24 24"><path d="M4 8h14l-3-3M20 16H6l3 3"/></svg><span>Compare</span></button>
@@ -42,6 +43,45 @@
     </header>
 
     <div id="message" class="message" role="status" aria-live="polite">Choose a dataset and load the initial routes to begin.</div>
+
+    <!-- HOME -->
+    <section id="view-home" class="view" hidden>
+      <div class="home-switch" role="group" aria-label="Home design"><span class="muted small">Design</span><button class="on" data-h="1">1</button><button data-h="2">2</button><button data-h="3">3</button></div>
+
+      <div class="home-v" id="home-v1">
+        <div class="h1-wrap">
+          <img class="h1-logo" src="/static/logo.svg" alt="">
+          <h1>GreenMile</h1>
+          <p class="h1-sub">Live last-mile route planning on real roads.</p>
+          <div class="h1-cta"><button class="btn primary big" data-go="ops">Open dashboard</button><button class="btn big" data-go="book">Book an order</button></div>
+          <div class="h1-stats"><span><b data-live="served">–</b>delivered</span><span><b data-live="working">–</b>trucks working</span><span><b data-live="unassigned">–</b>unassigned</span></div>
+        </div>
+      </div>
+
+      <div class="home-v" id="home-v2" hidden>
+        <div class="h2-head"><h1>Good day, dispatcher</h1><p class="muted" data-live="line">–</p></div>
+        <div class="h2-tiles">
+          <button class="tile-card" data-go="ops"><span class="tc-ico"><svg viewBox="0 0 24 24"><path d="M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2z"/><path d="M9 4v14M15 6v14"/></svg></span><b>Live map</b><small data-live="t-ops">Live fleet map</small></button>
+          <button class="tile-card" data-go="orders"><span class="tc-ico"><svg viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13"/><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/></svg></span><b>Orders</b><small data-live="t-orders">Every order and its status</small></button>
+          <button class="tile-card" data-go="book"><span class="tc-ico"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="4"/><path d="M12 8v8M8 12h8"/></svg></span><b>Book an order</b><small>Three quick steps</small></button>
+          <button class="tile-card" data-go="analytics"><span class="tc-ico"><svg viewBox="0 0 24 24"><path d="M4 20V11M10 20V4M16 20v-6M22 20H2"/></svg></span><b>Analytics</b><small data-live="t-analytics">Charts and event history</small></button>
+        </div>
+      </div>
+
+      <div class="home-v" id="home-v3" hidden>
+        <div class="h3-wrap">
+          <div class="h3-kicker">GreenMile</div>
+          <h1>Plan. Disrupt. Recover.</h1>
+          <div class="h3-steps">
+            <div><i>1</i><b>Plan</b><span>Routes on real roads for every truck.</span></div>
+            <div><i>2</i><b>Disrupt</b><span>Break a truck down or book a new order.</span></div>
+            <div><i>3</i><b>Recover</b><span>Compare three strategies and see the result.</span></div>
+          </div>
+          <button class="btn primary big" data-go="ops">Open dashboard</button>
+          <div class="h3-strip" data-live="strip">–</div>
+        </div>
+      </div>
+    </section>
 
     <!-- OPERATIONS -->
     <section id="view-ops" class="view">
@@ -70,6 +110,7 @@
       </div>
 
       <div class="ops-grid">
+        <div class="ops-main">
       <div class="map-card">
         <div class="map-wrap" id="map-wrap">
           <div id="map"></div>
@@ -96,15 +137,13 @@
         </div>
         <div class="hint"><span>Click a truck to inspect it · ⌖ then click the map to place a new order</span><span id="timeline-status">Viewing the initial plan</span></div>
       </div>
-
       <aside class="card fleet" aria-label="Fleet">
         <header><div><h2>Fleet</h2><span class="muted small" id="fleet-sub">–</span></div><span class="pill" id="fleet-count">0 trucks</span></header>
         <div class="fleet-sum" id="fleet-sum"></div>
         <div id="fleet-list" class="fleet-list"><p class="muted small pad">Load a dataset to see the trucks.</p></div>
       </aside>
-      </div>
-
-      <div class="grid-2">
+        </div>
+        <div class="ops-side">
         <section class="card">
           <header><h2>Change the day</h2><span class="pill">All 3 strategies</span></header>
           <p class="muted small pad">Events apply at the displayed time. Completed deliveries stay locked.</p>
@@ -132,6 +171,7 @@
           <header><h2>Event log</h2><span class="pill" id="event-count">0 events</span></header>
           <ul id="event-log" class="log"><li class="muted">No events yet.</li></ul>
         </section>
+      </div>
       </div>
     </section>
 
@@ -188,7 +228,14 @@
         <section class="card"><div class="table-scroll ord-table"><table>
           <thead><tr id="ord-head"><th data-k="id">Order</th><th data-k="status">Status</th><th data-k="truck">Truck</th><th data-k="ready">Window</th><th data-k="arrival">Planned arrival</th><th data-k="slack">Slack</th><th data-k="demand">Demand</th></tr></thead>
           <tbody id="ord-body"></tbody></table></div></section>
-        <aside class="card book" id="book-card">
+        
+      </div>
+    </section>
+
+    <!-- BOOK -->
+    <section id="view-book" class="view" hidden>
+      <div class="title-row"><div><h1>Book an order</h1><p class="muted">Pick a place, a parcel size and a delivery time. GreenMile re-plans every strategy and shows the result.</p></div></div>
+      <div class="book-wrap"><aside class="card book" id="book-card">
           <header><div><h2>Book an order</h2><span class="muted small">Three quick steps</span></div><span class="pill" id="book-when">–</span></header>
           <div class="pad">
             <div class="step"><b>1</b> Where should it go?</div>
@@ -203,8 +250,7 @@
             <button class="btn primary wide" id="book-go" disabled>Book order</button>
             <div id="book-result" class="book-result" hidden></div>
           </div>
-        </aside>
-      </div>
+        </aside></div>
     </section>
 
     <!-- ANALYTICS -->

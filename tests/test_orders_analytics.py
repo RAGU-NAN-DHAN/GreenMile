@@ -46,3 +46,29 @@ def test_timeseries_shows_the_breakdown(client):
 
 def test_timeseries_validates_step(client):
     assert client.get("/timeseries?step=0").status_code == 422
+
+
+def test_geocode_returns_places_and_caches(client, monkeypatch):
+    calls = []
+
+    def fake(query, lat, lng):
+        calls.append(query)
+        return [{"name": "Vellore Institute of Technology", "label": "Vellore Institute of Technology, Katpadi", "lat": 12.9697, "lon": 79.1607}]
+
+    api.place_cache.clear()
+    monkeypatch.setattr(api, "fetch_places", fake)
+    first = client.get("/geocode?q=vellore institute of technology").json()
+    again = client.get("/geocode?q=Vellore Institute of Technology").json()
+    assert first[0]["name"].startswith("Vellore") and again == first and len(calls) == 1
+
+
+def test_geocode_errors(client, monkeypatch):
+    import httpx
+
+    def down(*args):
+        raise httpx.ConnectError("offline")
+
+    api.place_cache.clear()
+    monkeypatch.setattr(api, "fetch_places", down)
+    assert client.get("/geocode?q=anything").status_code == 502
+    assert client.get("/geocode?q=a").status_code == 422

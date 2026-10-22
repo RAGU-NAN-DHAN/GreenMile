@@ -30,6 +30,22 @@ OSRM_URL = "https://router.project-osrm.org/route/v1/driving/{lng1},{lat1};{lng2
 road_cache: dict[tuple, dict] = {}
 road_lock = RLock()
 
+# Place search for the booking page, done server-side (browsers get blocked by the public service).
+NOMINATIM = "https://nominatim.openstreetmap.org/search"
+place_cache: dict[tuple, list] = {}
+place_lock = RLock()
+
+
+def fetch_places(query, lat, lng):
+    """Search OpenStreetMap by name, preferring results near (lat, lng). Returns [{name, label, lat, lon}]."""
+    box = 0.12
+    params = {"format": "jsonv2", "limit": 6, "q": query, "addressdetails": 0,
+              "viewbox": f"{lng - box},{lat + box},{lng + box},{lat - box}", "bounded": 0}
+    response = httpx.get(NOMINATIM, params=params, timeout=12, headers={"User-Agent": "GreenMile-student-demo/1.0"})
+    response.raise_for_status()
+    return [{"name": item["display_name"].split(",")[0], "label": item["display_name"],
+             "lat": float(item["lat"]), "lon": float(item["lon"])} for item in response.json()]
+
 
 def fetch_road(lat1, lng1, lat2, lng2):
     """Ask the public OSRM demo server for the driving route between two points."""
@@ -297,6 +313,23 @@ def get_kpis(t: Annotated[float | None, Query(ge=0, allow_inf_nan=False)] = None
         events = [event_summary(e) for e in comparison.events if e["time"] <= t]
         return {**metadata(), "time": t, "kpis": comparison.kpis(t), "events": events,
                 "latest_event": events[-1] if events else None}
+
+
+@app.get("/geocode")
+def geocode(q: Annotated[str, Query(min_length=2, max_length=120)],
+            lat: Annotated[float, Query(ge=-90, le=90)] = 12.9697, lng: Annotated[float, Query(ge=-180, le=180)] = 79.1607):
+    """Place search for the booking page; cached, and 502 when the search service is unreachable."""
+    key = (q.strip().lower(), round(lat, 2), round(lng, 2))
+    with place_lock:
+        if key in place_cache:
+            return place_cache[key]
+    try:
+        found = fetch_places(q.strip(), lat, lng)
+    except (httpx.HTTPError, KeyError, ValueError) as exc:
+        raise HTTPException(502, "Place search is unavailable right now") from exc
+    with place_lock:
+        place_cache[key] = found
+    return found
 
 
 @app.get("/road")

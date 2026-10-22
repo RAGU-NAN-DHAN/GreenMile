@@ -331,3 +331,60 @@ select option:checked,select option:hover{background-color:#3a3d18;color:#f4f4f4
 #book-map .leaflet-control-zoom a{background:#181817;color:#f4f4f4;border-color:#2a2a29}
 
 .chart.short{height:230px}
+
+/* header on one row, wider content */
+.content{max-width:1680px}
+.chips{flex-wrap:nowrap;gap:6px}
+.chip{padding:4px 11px;font-size:11.5px;white-space:nowrap}
+.chips .btn{white-space:nowrap;padding:7px 16px}
+@media(max-width:1350px){.chips{flex-wrap:wrap}}
+
+/* logo button */
+.logo-btn{background:none;border:0;padding:0;border-radius:14px;cursor:pointer;margin-bottom:12px;transition:transform .15s}
+.logo-btn:hover:not(:disabled){background:none;transform:scale(1.07)}
+.logo-btn .logo{margin:0}
+
+/* operations: map with the trucks right below it, controls on the side panel */
+.ops-grid{grid-template-columns:minmax(0,1fr) 380px}
+.ops-main,.ops-side{display:flex;flex-direction:column;gap:14px;min-width:0}
+.fleet{max-height:none}
+.fleet-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));max-height:460px}
+.clean .ops-side{display:none!important}.clean .ops-main{display:block}
+@media(max-width:1100px){.ops-grid{grid-template-columns:1fr}}
+
+/* orders full width, booking page */
+.ord-grid{grid-template-columns:1fr}
+.ord-table{max-height:none}
+.book-wrap{max-width:780px}
+#view-book #book-map{height:330px}
+
+/* home: three minimal designs */
+.home-switch{display:flex;gap:6px;align-items:center;justify-content:flex-end;margin:4px 0 0}
+.home-switch button{width:30px;height:30px;padding:0;border-radius:50%;font-size:12px}
+.home-switch button.on{background:var(--accent);color:#1a1d00;border-color:var(--accent)}
+.btn.big{padding:14px 30px;font-size:16px;border-radius:14px}
+.h1-wrap{min-height:62vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:16px;padding:30px 0}
+.h1-logo{width:128px;height:128px;filter:drop-shadow(0 12px 30px rgba(206,222,98,.25))}
+.h1-wrap h1{font-size:76px;letter-spacing:-3px;line-height:1}
+.h1-sub{font-size:22px;color:var(--muted)}
+.h1-cta{display:flex;gap:12px;margin-top:10px}
+.h1-stats{display:flex;gap:38px;margin-top:26px;color:var(--muted);font-size:13px}
+.h1-stats b{display:block;font-size:30px;color:var(--text);letter-spacing:-1px;font-variant-numeric:tabular-nums}
+.h2-head{margin:34px 0 10px}.h2-head h1{font-size:44px;letter-spacing:-1.5px}
+.h2-tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:26px}
+.tile-card{display:flex;flex-direction:column;align-items:flex-start;gap:8px;padding:26px 24px;min-height:210px;border-radius:24px;text-align:left;background:var(--panel);border:1px solid var(--line);transition:border-color .15s,transform .15s}
+.tile-card:hover:not(:disabled){background:#161815;border-color:#4d5420;transform:translateY(-3px)}
+.tile-card b{font-size:24px;letter-spacing:-.5px;margin-top:auto}.tile-card small{color:var(--muted);font-weight:400;font-size:13px}
+.tc-ico{width:48px;height:48px;border-radius:14px;background:#1c2008;color:var(--accent);display:grid;place-content:center}
+.tc-ico svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.h3-wrap{min-height:62vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:22px;padding:30px 0}
+.h3-kicker{color:var(--accent);letter-spacing:6px;font-size:13px;font-weight:700;text-transform:uppercase}
+.h3-wrap h1{font-size:68px;letter-spacing:-2.5px;line-height:1.05}
+.h3-steps{display:grid;grid-template-columns:repeat(3,minmax(0,260px));gap:20px;margin:14px 0}
+.h3-steps div{display:flex;flex-direction:column;gap:8px;align-items:center;padding:20px 18px;border-top:2px solid var(--line)}
+.h3-steps i{font-style:normal;width:34px;height:34px;border-radius:50%;border:1px solid var(--accent);color:var(--accent);display:grid;place-content:center;font-weight:700}
+.h3-steps b{font-size:22px}.h3-steps span{color:var(--muted);font-size:14px}
+.h3-strip{color:var(--muted);font-size:14px}
+@media(max-width:1000px){.h2-tiles{grid-template-columns:1fr 1fr}.h3-steps{grid-template-columns:1fr}.h1-wrap h1,.h3-wrap h1{font-size:46px}}
+
+.results li button b{font-weight:600;font-size:13px}.results li button span{font-size:11px}

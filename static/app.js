@@ -110,6 +110,7 @@
     $('c-drop').textContent = k.dropped_orders;
     $('c-dist').textContent = dist(k.distance);
     $('c-solve').textContent = `${fmt(k.solve_time_sec, 2)}s`;
+    $('c-road').parentElement.hidden = data.routing === 'road';   // the Distance chip already shows road km
 
     // filter counts
     const counts = {all: s.vehicles.length, active, idle: 0, broken: 0};
@@ -137,7 +138,8 @@
     $('clock-max').textContent = data.max_time;
     if (view === 'vehicle') renderVehicle();
     if (view === 'compare') renderCompare();
-    if (view === 'orders') renderOrders();
+    if (view === 'orders' || view === 'book') renderOrders();
+    if (view === 'home') renderHome();
     if (view === 'analytics') renderAnalytics();
   }
 
@@ -565,10 +567,8 @@
     $('book-go').disabled = !(data && t >= data.committed_time);
   }
   async function searchPlaces(q) {
-    const g = data.geo, d = 0.08;
-    const url = `https://nominatim.openstreetmap.org/search?format=json&limit=5&q=${encodeURIComponent(q)}&viewbox=${g.lng0 - d},${g.lat0 + d},${g.lng0 + d},${g.lat0 - d}`;
-    const res = await fetch(url, {headers: {Accept: 'application/json'}});
-    return res.ok ? res.json() : [];
+    // The server does the search (OpenStreetMap), biased to the area around the depot.
+    return api(`/geocode?q=${encodeURIComponent(q)}&lat=${data.geo.lat0}&lng=${data.geo.lng0}`);
   }
   function showBookResult() {
     const id = Math.max(...current().customers.map(c => c.id));
@@ -639,11 +639,31 @@
     }).join('') : '<tr><td colspan="5" class="muted">No events yet. Take a truck offline or book an order.</td></tr>';
   }
 
+  // ---------- home (three minimal designs, pick one) ----------
+  function renderHome() {
+    const ok = !!data, s = ok ? current() : null, k = ok ? data.kpis[$('strategy').value] : null;
+    const working = ok ? s.vehicles.filter(v => v.served_count + v.pending_count > 0).length : 0;
+    const put = (key, text) => document.querySelectorAll(`[data-live="${key}"]`).forEach(el => { el.textContent = text; });
+    const line = ok ? `${data.dataset} · ${k.served_orders} of ${k.total_orders} orders delivered · ${k.dropped_orders} unassigned · minute ${fmt(t, 0)}` : 'No dataset loaded yet. Press Load & solve to begin.';
+    put('served', ok ? `${k.served_orders}/${k.total_orders}` : '–');
+    put('working', ok ? String(working) : '–');
+    put('unassigned', ok ? String(k.dropped_orders) : '–');
+    put('line', line); put('strip', line);
+    put('t-ops', ok ? `${working} trucks working · minute ${fmt(t, 0)}` : 'Live fleet map');
+    put('t-orders', ok ? `${k.total_orders} orders · ${k.dropped_orders} unassigned` : 'Every order and its status');
+    put('t-analytics', ok ? `${data.events.length} event${data.events.length === 1 ? '' : 's'} so far` : 'Charts and event history');
+  }
+  function setHome(n) {
+    document.querySelectorAll('.home-v').forEach(el => { el.hidden = el.id !== 'home-v' + n; });
+    document.querySelectorAll('.home-switch button').forEach(b => b.classList.toggle('on', b.dataset.h === String(n)));
+    try { localStorage.setItem('gmHome', String(n)); } catch (e) { /* storage may be blocked */ }
+  }
+
   // ---------- actions ----------
   function showView(name) {
     view = name;
-    ['ops', 'orders', 'vehicle', 'analytics', 'compare'].forEach(v => { $('view-' + v).hidden = v !== name; });
-    if (name === 'orders') setTimeout(initBookMap, 0);
+    ['home', 'ops', 'orders', 'book', 'vehicle', 'analytics', 'compare'].forEach(v => { $('view-' + v).hidden = v !== name; });
+    if (name === 'book') setTimeout(initBookMap, 0);
     document.querySelectorAll('.nav').forEach(b => b.classList.toggle('active', b.dataset.view === name));
     if (data) { render(); if (name === 'ops') setTimeout(() => { if (mode === 'street' && lmap) lmap.invalidateSize(); else if (!$('map').hidden) Plotly.Plots.resize($('map')); }, 0); }
   }
@@ -743,6 +763,12 @@
   const step = d => { if (!data) return; const ids = current().vehicles.map(v => v.id); selected = ids[(ids.indexOf(selected) + d + ids.length) % ids.length]; renderVehicle(); };
   $('vd-prev').onclick = () => step(-1);
   $('vd-next').onclick = () => step(1);
+  // home + logo
+  $('logo-home').onclick = () => showView('home');
+  document.addEventListener('click', e => { const b = e.target.closest('[data-go]'); if (b) showView(b.dataset.go); });
+  document.querySelector('.home-switch').onclick = e => { const b = e.target.closest('button'); if (b) setHome(b.dataset.h); };
+  let savedHome = '1'; try { savedHome = localStorage.getItem('gmHome') || '1'; } catch (e) { /* ignore */ }
+  setHome(new URLSearchParams(location.search).get('home') || savedHome);
   // orders + booking wiring
   $('ord-search').oninput = e => { ordQuery = e.target.value; if (data) renderOrders(); };
   $('ord-filters').onclick = e => {
@@ -760,7 +786,7 @@
     const row = e.target.closest('tr'); if (!row || !row.dataset.truck) return;
     selected = Number(row.dataset.truck); cardOpen = true; showView('ops');
   };
-  $('ord-book-open').onclick = () => $('book-card').scrollIntoView({behavior: 'smooth', block: 'start'});
+  $('ord-book-open').onclick = () => showView('book');
   $('book-size').onclick = e => { const b = e.target.closest('.opt'); if (!b) return; bookSize = Number(b.dataset.d); document.querySelectorAll('#book-size .opt').forEach(x => x.classList.toggle('on', x === b)); };
   $('book-slot').onclick = e => { const b = e.target.closest('.opt'); if (!b) return; bookWindow = Number(b.dataset.w); document.querySelectorAll('#book-slot .opt').forEach(x => x.classList.toggle('on', x === b)); };
   const runSearch = async () => {
@@ -768,15 +794,15 @@
     $('book-results').innerHTML = '<li class="muted small">Searching…</li>';
     try {
       const found = await searchPlaces(q);
-      $('book-results').innerHTML = found.length ? found.map((p, i) => `<li><button data-i="${i}">${p.display_name}</button></li>`).join('') : '<li class="muted small">No results near the depot. Click the map instead.</li>';
+      $('book-results').innerHTML = found.length ? found.map((p, i) => `<li><button data-i="${i}"><b>${p.name}</b><br><span class="muted">${p.label}</span></button></li>`).join('') : '<li class="muted small">No match found. Try a landmark or street name, or click the map to drop a pin.</li>';
       $('book-results').onclick = ev => {
         const b = ev.target.closest('button'); if (!b) return;
         const p = found[Number(b.dataset.i)];
-        setBookPoint(Number(p.lat), Number(p.lon), p.display_name.split(',')[0]);
+        setBookPoint(Number(p.lat), Number(p.lon), p.name);
         bookMap.setView([Number(p.lat), Number(p.lon)], 16);
         $('book-results').innerHTML = '';
       };
-    } catch (err) { $('book-results').innerHTML = '<li class="muted small">Search is unavailable. Click the map instead.</li>'; }
+    } catch (err) { $('book-results').innerHTML = `<li class="muted small">${err.message || 'Search is unavailable'}. Click the map to drop a pin instead.</li>`; }
   };
   $('book-find').onclick = runSearch;
   $('book-q').onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); runSearch(); } };
@@ -804,7 +830,7 @@
     if (wanted > 0) first = await api(`/state?t=${wanted}`);
     if (params.has('truck')) { selected = Number(params.get('truck')); cardOpen = true; }
     accept(first);
-    if (['vehicle', 'compare', 'orders', 'analytics'].includes(params.get('view'))) showView(params.get('view'));
+    if (['vehicle', 'compare', 'orders', 'analytics', 'home', 'book'].includes(params.get('view'))) showView(params.get('view'));
     $('order-ready').value = Math.round(first.time); $('order-due').value = first.max_time;
     say(`${first.dataset} is loaded. Move the slider or press Play.`);
   }).catch(() => {});
