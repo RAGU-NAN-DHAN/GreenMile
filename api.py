@@ -3,6 +3,7 @@ from pathlib import Path
 from threading import RLock
 from typing import Annotated, Literal
 from uuid import uuid4
+import httpx
 from fastapi import Body, FastAPI, HTTPException, Query
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -19,6 +20,21 @@ current: Comparison | None = None
 session_id = ""
 revision = 0
 dataset_name = ""
+
+# Road geometry for the street-map view. Cosmetic: the solver still uses Solomon x/y distances.
+OSRM_URL = "https://router.project-osrm.org/route/v1/driving/{lng1},{lat1};{lng2},{lat2}?overview=full&geometries=geojson"
+road_cache: dict[tuple, dict] = {}
+road_lock = RLock()
+
+
+def fetch_road(lat1, lng1, lat2, lng2):
+    """Ask the public OSRM demo server for the driving route between two points."""
+    response = httpx.get(OSRM_URL.format(lat1=lat1, lng1=lng1, lat2=lat2, lng2=lng2), timeout=10,
+                         headers={"User-Agent": "GreenMile-student-demo"})
+    response.raise_for_status()
+    route = response.json()["routes"][0]
+    return {"distance_m": route["distance"],
+            "coords": [[lat, lng] for lng, lat in route["geometry"]["coordinates"]]}
 
 
 class StrictModel(BaseModel):
@@ -88,7 +104,7 @@ def chart_state(snapshot):
     routes, vehicles, assignment = [], [], {}
     for key, vehicle in snapshot["vehicles"].items():
         future_count = 0
-        past, future = [], []
+        past, future, legs = [], [], []
         for segment in vehicle["segments"]:
             if segment["kind"] == "servicing":
                 assignment[segment["customer_id"]] = int(key)
@@ -96,6 +112,9 @@ def chart_state(snapshot):
             if segment["kind"] != "travelling":
                 continue
             a, b = [segment["x1"], segment["y1"]], [segment["x2"], segment["y2"]]
+            span = segment["end"]-segment["start"]
+            progress = 1.0 if segment["end"] <= t else 0.0 if segment["start"] >= t or span <= 0 else (t-segment["start"])/span
+            legs.append({"a": a, "b": b, "p": progress})
             if segment["end"] <= t:
                 past.append([a, b])
             elif segment["start"] >= t:
@@ -104,7 +123,7 @@ def chart_state(snapshot):
                 f = (t-segment["start"])/(segment["end"]-segment["start"])
                 middle = [a[0]+(b[0]-a[0])*f, a[1]+(b[1]-a[1])*f]
                 past.append([a, middle]); future.append([middle, b])
-        routes.append({"vehicle_id": int(key), "past": past, "future": future})
+        routes.append({"vehicle_id": int(key), "past": past, "future": future, "legs": legs})
         vehicles.append({"id": int(key), "x": vehicle["x"], "y": vehicle["y"],
                          "status": vehicle["status"], "used_capacity": vehicle["used_capacity"],
                          "capacity": vehicle["capacity"], "pending_count": future_count,
@@ -186,6 +205,23 @@ def get_kpis(t: Annotated[float | None, Query(ge=0, allow_inf_nan=False)] = None
         events = [event_summary(e) for e in comparison.events if e["time"] <= t]
         return {**metadata(), "time": t, "kpis": comparison.kpis(t), "events": events,
                 "latest_event": events[-1] if events else None}
+
+
+@app.get("/road")
+def road(lat1: Annotated[float, Query(ge=-90, le=90)], lng1: Annotated[float, Query(ge=-180, le=180)],
+         lat2: Annotated[float, Query(ge=-90, le=90)], lng2: Annotated[float, Query(ge=-180, le=180)]):
+    """Cached road route between two points; 502 when the routing service is unreachable."""
+    key = tuple(round(v, 5) for v in (lat1, lng1, lat2, lng2))
+    with road_lock:
+        if key in road_cache:
+            return road_cache[key]
+    try:
+        result = fetch_road(*key)
+    except (httpx.HTTPError, KeyError, IndexError, ValueError) as exc:
+        raise HTTPException(502, "Road routing service unavailable") from exc
+    with road_lock:
+        road_cache[key] = result
+    return result
 
 
 app.mount("/static", StaticFiles(directory=ROOT / "static"), name="static")

@@ -357,3 +357,15 @@ time windows still use Solomon x/y units, and route lines are straight, not road
 Tiles come from OpenStreetMap (attribution shown; internet needed), darkened with a
 CSS filter. Leaflet 1.9.4 is bundled in `static/vendor/leaflet/`. The plain map stays
 available as an offline fallback.
+
+### Road routes (street map)
+
+In street-map view every route leg is drawn along real roads. The backend `/road`
+endpoint asks the public OSRM demo server (router.project-osrm.org) for the driving
+route between two points and caches the answer; the page shows straight lines while
+a leg loads, and keeps a straight line if the service is unreachable. The "Road" chip
+sums the real road length of all legs. Vehicles are drawn at their progress along the
+road. The solver still plans on Solomon x/y distances, so road kilometres are
+informational and do not change the KPIs. Points that fall off-road (rivers, forest)
+snap to the nearest road. The OSRM demo server is for light use only; self-host OSRM
+or use another routing service for anything heavier.

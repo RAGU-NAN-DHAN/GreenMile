@@ -144,7 +144,44 @@
     $('map-note').hidden = mode !== 'street';
     $('city-label').hidden = mode !== 'street';
     $('street').classList.toggle('active', mode === 'street');
-    if (mode === 'street') drawStreet(); else drawPlain();
+    if (mode === 'street') drawStreet(); else { $('c-road').textContent = '–'; drawPlain(); }
+  }
+
+  // ---------- road geometry (street map only, cosmetic) ----------
+  const roads = new Map();    // "lat,lng,lat,lng" -> {coords:[[lat,lng]], distance_m} | 'fail'
+  const queued = new Set(), waiting = [];
+  let inflight = 0, redrawTimer = null;
+  const legKey = (p, q) => [...p, ...q].map(v => v.toFixed(5)).join(',');
+  function requestRoad(key, p, q) {
+    if (roads.has(key) || queued.has(key)) return;
+    queued.add(key); waiting.push([key, p, q]); pump();
+  }
+  function pump() {
+    while (inflight < 6 && waiting.length) {
+      const [key, p, q] = waiting.shift();
+      inflight++;
+      fetch(`/road?lat1=${p[0]}&lng1=${p[1]}&lat2=${q[0]}&lng2=${q[1]}`)
+        .then(r => r.ok ? r.json() : Promise.reject())
+        .then(j => roads.set(key, j)).catch(() => roads.set(key, 'fail'))
+        .finally(() => { inflight--; queued.delete(key); clearTimeout(redrawTimer);
+          redrawTimer = setTimeout(() => { if (mode === 'street' && data) drawStreet(); }, 250); pump(); });
+    }
+  }
+  const metres = (a, b) => Math.hypot((b[0] - a[0]) * 111320, (b[1] - a[1]) * 111320 * Math.cos(a[0] * Math.PI / 180));
+  // Split a polyline at a fraction of its length: [part before, part after, point at the split].
+  function splitAt(coords, fraction) {
+    const lengths = coords.slice(1).map((c, i) => metres(coords[i], c));
+    const target = lengths.reduce((a, b) => a + b, 0) * fraction;
+    let run = 0;
+    for (let i = 0; i < lengths.length; i++) {
+      if (run + lengths[i] >= target) {
+        const f = lengths[i] ? (target - run) / lengths[i] : 0;
+        const point = [coords[i][0] + (coords[i + 1][0] - coords[i][0]) * f, coords[i][1] + (coords[i + 1][1] - coords[i][1]) * f];
+        return [coords.slice(0, i + 1).concat([point]), [point].concat(coords.slice(i + 1)), point];
+      }
+      run += lengths[i];
+    }
+    return [coords, [coords[coords.length - 1]], coords[coords.length - 1]];
   }
 
   function drawStreet() {
@@ -171,13 +208,27 @@
     llayer.clearLayers();
     const showRoutes = $('t-routes').checked, showAlerts = $('t-alerts').checked;
 
-    if (showRoutes) {
-      s.routes.forEach(route => {
-        const isSel = route.vehicle_id === selected;
-        route.past.forEach(([a, b]) => L.polyline([ll(...a), ll(...b)], {color: '#6a6a68', weight: 1.5, dashArray: '2 6', interactive: false}).addTo(llayer));
-        route.future.forEach(([a, b]) => L.polyline([ll(...a), ll(...b)], {color: isSel ? ACCENT : OLIVE, weight: isSel ? 4 : 2, opacity: isSel ? 1 : .8, interactive: false}).addTo(llayer));
+    let roadMetres = 0, legsTotal = 0, legsLoaded = 0;
+    const vehiclePoint = {};
+    s.routes.forEach(route => {
+      const isSel = route.vehicle_id === selected;
+      route.legs.forEach(leg => {
+        const p = ll(...leg.a), q = ll(...leg.b);
+        if (p[0] === q[0] && p[1] === q[1]) return;
+        const key = legKey(p, q);
+        let road = roads.get(key);
+        if (!road) requestRoad(key, p, q);
+        legsTotal++;
+        if (road && road !== 'fail') { legsLoaded++; roadMetres += road.distance_m; }
+        const coords = road && road !== 'fail' ? road.coords : [p, q];
+        const [done, rest, here] = leg.p >= 1 ? [coords, [], null] : leg.p <= 0 ? [[], coords, null] : splitAt(coords, leg.p);
+        if (leg.p > 0 && leg.p < 1) vehiclePoint[route.vehicle_id] = here;
+        if (!showRoutes) return;
+        if (done.length > 1) L.polyline(done, {color: '#6a6a68', weight: 2, dashArray: '2 6', interactive: false}).addTo(llayer);
+        if (rest.length > 1) L.polyline(rest, {color: isSel ? ACCENT : OLIVE, weight: isSel ? 4 : 2.5, opacity: isSel ? 1 : .85, interactive: false}).addTo(llayer);
       });
-    }
+    });
+    $('c-road').textContent = legsTotal ? `${(roadMetres / 1000).toFixed(1)} km${legsLoaded < legsTotal ? '…' : ''}` : '–';
     s.customers.forEach(c => {
       L.circleMarker(ll(c.x, c.y), {radius: c.status === 'servicing' ? 8 : 6, color: '#040404', weight: 1, fillColor: STATUS_COLOURS[c.status], fillOpacity: 1})
         .bindTooltip(`Order ${c.id} · ${c.status}<br>Demand ${c.demand} · window ${c.ready}–${c.due}<br>Vehicle ${c.vehicle_id ?? 'unassigned'}`).addTo(llayer);
@@ -185,7 +236,7 @@
     });
     s.vehicles.filter(v => filter === 'all' || group(v.status) === filter).forEach(v => {
       const cls = v.status === 'broken' ? 'broken' : v.id === selected ? 'sel' : '';
-      L.marker(ll(v.x, v.y), {icon: L.divIcon({className: '', html: `<div class="vmark ${cls}"></div>`, iconSize: [16, 16], iconAnchor: [8, 8]}), zIndexOffset: v.id === selected ? 1000 : 0})
+      L.marker(vehiclePoint[v.id] || ll(v.x, v.y), {icon: L.divIcon({className: '', html: `<div class="vmark ${cls}"></div>`, iconSize: [16, 16], iconAnchor: [8, 8]}), zIndexOffset: v.id === selected ? 1000 : 0})
         .bindTooltip(`Vehicle ${v.id} · ${v.status}<br>Load ${v.used_capacity}/${v.capacity}`)
         .on('click', () => { selected = v.id; render(); }).addTo(llayer);
     });
