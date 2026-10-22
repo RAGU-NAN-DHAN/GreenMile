@@ -500,3 +500,8 @@ select option:checked,select option:hover{background-color:#3a3d18;color:#f4f4f4
 /* zoomed out: in-use trucks keep a bright yellow glow, idle are dim */
 #lmap.z-low .tkb.travelling,#lmap.z-low .tkb.servicing,#lmap.z-low .tkb.waiting{box-shadow:0 0 0 2px rgba(255,228,92,.4),0 0 12px #ffd400}
 #lmap.z-low .tkb.idle{opacity:.5}
+
+/* stepper arrows: minimal green border, easier to see */
+.st-arrow{border:1px solid rgba(206,222,98,.6);color:#dcea78;background:#12140a}
+.st-arrow:hover{border-color:#cede62;color:#f4ffa0;background:#1b2009;box-shadow:0 0 0 3px rgba(206,222,98,.12)}
+.stepper:focus-visible .st-arrow{border-color:#cede62}
