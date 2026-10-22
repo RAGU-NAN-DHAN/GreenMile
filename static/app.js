@@ -659,6 +659,28 @@
     try { localStorage.setItem('gmHome', String(n)); } catch (e) { /* storage may be blocked */ }
   }
 
+  // ---------- steppers: arrow selectors instead of native dropdowns ----------
+  function enhanceSteppers() {
+    document.querySelectorAll('select[data-stepper]').forEach(sel => {
+      sel.hidden = true;
+      const box = document.createElement('div');
+      box.className = 'stepper'; box.tabIndex = 0; box.setAttribute('role', 'group'); box.setAttribute('aria-label', sel.id);
+      box.innerHTML = '<button type="button" class="st-arrow" aria-label="Previous">‹</button><div class="st-mid"><span class="st-name"></span><span class="st-dots"></span></div><button type="button" class="st-arrow" aria-label="Next">›</button>';
+      sel.insertAdjacentElement('afterend', box);
+      const sync = () => {
+        box.querySelector('.st-name').textContent = sel.selectedOptions[0] ? sel.selectedOptions[0].textContent : '';
+        box.querySelector('.st-dots').innerHTML = [...sel.options].map((_, i) => `<i class="${i === sel.selectedIndex ? 'on' : ''}"></i>`).join('');
+      };
+      const step = d => { const n = sel.options.length; sel.selectedIndex = (sel.selectedIndex + d + n) % n; sel.dispatchEvent(new Event('change', {bubbles: true})); sync(); };
+      const [prev, next] = box.querySelectorAll('.st-arrow');
+      prev.onclick = e => { e.preventDefault(); step(-1); };
+      next.onclick = e => { e.preventDefault(); step(1); };
+      box.onkeydown = e => { if (e.key === 'ArrowLeft') { e.preventDefault(); step(-1); } else if (e.key === 'ArrowRight') { e.preventDefault(); step(1); } };
+      sel.addEventListener('change', sync);
+      sync();
+    });
+  }
+
   // ---------- actions ----------
   function showView(name) {
     view = name;
@@ -763,6 +785,7 @@
   const step = d => { if (!data) return; const ids = current().vehicles.map(v => v.id); selected = ids[(ids.indexOf(selected) + d + ids.length) % ids.length]; renderVehicle(); };
   $('vd-prev').onclick = () => step(-1);
   $('vd-next').onclick = () => step(1);
+  enhanceSteppers();
   // home + logo
   $('logo-home').onclick = () => showView('home');
   document.addEventListener('click', e => { const b = e.target.closest('[data-go]'); if (b) showView(b.dataset.go); });

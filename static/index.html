@@ -4,11 +4,11 @@
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
   <title>GreenMile — Operations</title>
   <link rel="icon" type="image/svg+xml" href="/static/logo.svg">
-  <link rel="stylesheet" href="/static/style.css?v=16">
+  <link rel="stylesheet" href="/static/style.css?v=17">
   <link rel="stylesheet" href="/static/vendor/leaflet/leaflet.css">
   <script defer src="/static/vendor/plotly.min.js"></script>
   <script defer src="/static/vendor/leaflet/leaflet.js"></script>
-  <script defer src="/static/app.js?v=16"></script>
+  <script defer src="/static/app.js?v=17"></script>
 </head>
 <body>
 <div class="shell">
@@ -34,11 +34,11 @@
       <span class="chip" title="Real road distance of all legs, street map only">Road <b id="c-road">–</b></span>
       <div class="spacer"></div>
       <label class="chip sel" title="Average driving speed in road mode; one time unit = one minute of driving">Avg speed
-        <select id="speed-kmh"><option value="15">15 km/h</option><option value="20">20 km/h</option><option value="25" selected>25 km/h</option><option value="30">30 km/h</option><option value="40">40 km/h</option></select></label>
+        <select id="speed-kmh" data-stepper><option value="15">15 km/h</option><option value="20">20 km/h</option><option value="25" selected>25 km/h</option><option value="30">30 km/h</option><option value="40">40 km/h</option></select></label>
       <label class="chip sel">Distance
-        <select id="routing"><option value="road">Road</option><option value="euclid">Straight-line</option></select></label>
+        <select id="routing" data-stepper><option value="road">Road</option><option value="euclid">Straight-line</option></select></label>
       <label class="chip sel">Dataset
-        <select id="dataset"><option>R101</option><option>C101</option><option>RC101</option></select></label>
+        <select id="dataset" data-stepper><option>R101</option><option>C101</option><option>RC101</option></select></label>
       <button id="load" class="btn primary">Load &amp; solve</button>
     </header>
 
@@ -88,9 +88,9 @@
       <div class="title-row">
         <div><h1>Operations Dashboard</h1><p class="muted" id="subtitle">No dataset loaded</p></div>
         <label class="sel-inline" id="city-label">City
-          <select id="city"><option value="vit">VIT Vellore</option><option value="vellore">Vellore</option><option value="chennai">Chennai</option><option value="bengaluru">Bengaluru</option></select></label>
+          <select id="city" data-stepper><option value="vit">VIT Vellore</option><option value="vellore">Vellore</option><option value="chennai">Chennai</option><option value="bengaluru">Bengaluru</option></select></label>
         <label class="sel-inline">Strategy
-          <select id="strategy">
+          <select id="strategy" data-stepper>
             <option value="replan">OR-Tools re-plan</option>
             <option value="cheapest_insertion">Cheapest insertion</option>
             <option value="do_nothing">Do nothing</option>
@@ -132,7 +132,7 @@
           <button id="play" class="btn" disabled>▶ Play</button>
           <div class="time"><div><span class="muted">Simulation time</span><b><span id="time-value">0</span><span class="muted"> / <span id="time-max">–</span> min</span></b></div>
             <input id="time-slider" type="range" min="0" max="230" step="0.1" value="0" disabled></div>
-          <label class="sel-inline">Speed <select id="speed"><option value="1" selected>1 min/s</option><option value="2">2 min/s</option><option value="4">4 min/s</option><option value="10">10 min/s</option><option value="25">25 min/s</option></select></label>
+          <label class="sel-inline">Speed <select id="speed" data-stepper><option value="1" selected>1 min/s</option><option value="2">2 min/s</option><option value="4">4 min/s</option><option value="10">10 min/s</option><option value="25">25 min/s</option></select></label>
           <button id="jump-live" class="btn ghost" hidden>Latest →</button>
         </div>
         <div class="hint"><span>Click a truck to inspect it · ⌖ then click the map to place a new order</span><span id="timeline-status">Viewing the initial plan</span></div>

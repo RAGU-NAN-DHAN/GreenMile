@@ -388,3 +388,14 @@ select option:checked,select option:hover{background-color:#3a3d18;color:#f4f4f4
 @media(max-width:1000px){.h2-tiles{grid-template-columns:1fr 1fr}.h3-steps{grid-template-columns:1fr}.h1-wrap h1,.h3-wrap h1{font-size:46px}}
 
 .results li button b{font-weight:600;font-size:13px}.results li button span{font-size:11px}
+
+/* stepper selector (replaces native dropdowns) */
+.stepper{display:inline-flex;align-items:center;gap:5px;outline:none;border-radius:99px}
+.stepper:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+.st-arrow{width:22px;height:22px;border-radius:50%;padding:0;border:1px solid var(--line);background:var(--panel2);color:var(--muted);font-size:15px;line-height:1;display:grid;place-content:center}
+.st-arrow:hover{color:var(--text);border-color:#4d5420;background:#1b1e0c}
+.st-mid{display:flex;flex-direction:column;align-items:center;gap:3px;min-width:62px}
+.st-name{font-weight:600;font-size:12.5px;white-space:nowrap;color:var(--text)}
+.st-dots{display:flex;gap:3px;height:4px}.st-dots i{width:4px;height:4px;border-radius:50%;background:#2d2f22;transition:width .2s}
+.st-dots i.on{width:13px;border-radius:99px;background:var(--accent)}
+.chip.sel{padding:3px 10px 3px 12px}
