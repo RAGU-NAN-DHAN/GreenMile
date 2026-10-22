@@ -3,23 +3,23 @@
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
   <title>GreenMile — Operations</title>
-  <link rel="stylesheet" href="/static/style.css">
+  <link rel="stylesheet" href="/static/style.css?v=3">
   <link rel="stylesheet" href="/static/vendor/leaflet/leaflet.css">
   <script defer src="/static/vendor/plotly.min.js"></script>
   <script defer src="/static/vendor/leaflet/leaflet.js"></script>
-  <script defer src="/static/app.js"></script>
+  <script defer src="/static/app.js?v=3"></script>
 </head>
 <body>
 <div class="shell">
   <nav class="sidebar" aria-label="Main">
-    <div class="logo">✚</div>
+    <div class="logo" title="GreenMile">✚</div>
     <button class="nav active" data-view="ops" title="Operations" aria-label="Operations">▦</button>
     <button class="nav" data-view="vehicle" title="Vehicle detail" aria-label="Vehicle detail">⛟</button>
     <button class="nav" data-view="compare" title="Strategies" aria-label="Strategies">⇄</button>
   </nav>
 
   <div class="content">
-    <div class="brandbar"><span class="brandmark">✚</span><div><b>GreenMile</b><small>Intelligent last-mile routing &amp; live fleet simulation</small></div></div>
+    <div class="brandbar"><div><b>GreenMile</b><small>Intelligent last-mile routing &amp; live fleet simulation</small></div></div>
     <header class="chips" id="chips">
       <span class="chip">Active <b id="c-active">–</b></span>
       <span class="chip">Delivered <b id="c-served">–</b></span>
@@ -29,6 +29,8 @@
       <span class="chip">Solve <b id="c-solve">–</b></span>
       <span class="chip" title="Real road distance of all legs, street map only">Road <b id="c-road">–</b></span>
       <div class="spacer"></div>
+      <label class="chip sel" title="Average driving speed in road mode; one time unit = one minute of driving">Avg speed
+        <select id="speed-kmh"><option value="15">15 km/h</option><option value="20">20 km/h</option><option value="25" selected>25 km/h</option><option value="30">30 km/h</option><option value="40">40 km/h</option></select></label>
       <label class="chip sel">Distance
         <select id="routing"><option value="road">Road</option><option value="euclid">Straight-line</option></select></label>
       <label class="chip sel">Dataset

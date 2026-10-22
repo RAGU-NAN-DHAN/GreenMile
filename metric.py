@@ -55,12 +55,13 @@ def fetch_table(latlngs):
 
 
 class RoadMetric:
-    def __init__(self, city, centre, table=None, origin=None):
+    def __init__(self, city, centre, table=None, origin=None, speed_kmh=None):
         if city not in CITIES:
             raise ValueError(f"Unknown city: {city}")
         self.city, self.centre = city, centre
         self.table = table or fetch_table   # resolved at call time so tests can replace fetch_table
         self.origin = origin or CITIES[city]   # lat/lng that the plane point `centre` maps to
+        self.speed_kmh = speed_kmh             # average driving speed; None = calibrate to the Solomon scale
         self.cache = {}
         self.snap = {}                        # placed lat/lng -> nearest on-road lat/lng
         self.lock = RLock()
@@ -69,13 +70,14 @@ class RoadMetric:
 
     @property
     def metres_per_unit(self):
-        return PLACE_M * self.ratio
+        """Road metres per time unit (= one minute). With a speed this is speed/60, so times are realistic."""
+        return self.speed_kmh * 1000 / 60 if self.speed_kmh else PLACE_M * self.ratio
 
     @property
     def geo(self):
         lat0, lng0 = self.origin
         return {"city": self.city, "lat0": lat0, "lng0": lng0, "cx": self.centre[0], "cy": self.centre[1],
-                "place_m": PLACE_M, "metres_per_unit": self.metres_per_unit}
+                "place_m": PLACE_M, "metres_per_unit": self.metres_per_unit, "speed_kmh": self.speed_kmh}
 
     def __deepcopy__(self, memo):               # simulator forks share one cache
         return self
@@ -133,22 +135,22 @@ class RoadMetric:
         return int(math.floor(metres / self.metres_per_unit * SCALE + 0.5))
 
     @classmethod
-    def for_problem(cls, problem, city, table=None, anchor=None):
+    def for_problem(cls, problem, city, table=None, anchor=None, speed_kmh=None):
         """Metric with the grid placed on the city (or the depot on `anchor`), no distances fetched yet."""
         if anchor is not None:
-            return cls(city, (problem.depot.x, problem.depot.y), table, origin=tuple(anchor))
+            return cls(city, (problem.depot.x, problem.depot.y), table, origin=tuple(anchor), speed_kmh=speed_kmh)
         customers = problem.customers or (problem.depot,)
         centre = ((min(c.x for c in customers) + max(c.x for c in customers)) / 2,
                   (min(c.y for c in customers) + max(c.y for c in customers)) / 2)
-        return cls(city, centre, table)
+        return cls(city, centre, table, speed_kmh=speed_kmh)
 
     @classmethod
-    def build(cls, problem, city, table=None, anchor=None):
+    def build(cls, problem, city, table=None, anchor=None, speed_kmh=None):
         """Fetch the initial node matrix and calibrate the unit so road ~ straight on average.
 
         With anchor=(lat, lng) the depot is placed exactly there; otherwise the customers' centre
         sits on the city centre."""
-        metric = cls.for_problem(problem, city, table, anchor)
+        metric = cls.for_problem(problem, city, table, anchor, speed_kmh)
         points = [(c.x, c.y) for c in problem.nodes]
         unique = list(dict.fromkeys(metric.latlng(x, y) for x, y in points))
         matrix, snapped = metric._table(unique)

@@ -51,6 +51,8 @@ class LoadPayload(StrictModel):
     routing: Literal["euclid", "road"] = "euclid"
     city: Literal["vit", "vellore", "chennai", "bengaluru"] = "vit"
     # Optional exact depot location; the Solomon grid is laid out around it.
+    # Average driving speed in road mode: one time unit is one minute of driving at this speed.
+    speed_kmh: float = Field(default=25, ge=5, le=80)
     depot_lat: float | None = Field(default=None, ge=-90, le=90)
     depot_lng: float | None = Field(default=None, ge=-180, le=180)
 
@@ -200,12 +202,12 @@ def load(payload: LoadPayload):
             anchor = (payload.depot_lat, payload.depot_lng) if payload.depot_lat is not None else DEFAULT_DEPOT.get(payload.city)
             if payload.routing == "road":
                 try:
-                    metric = RoadMetric.build(problem, payload.city, anchor=anchor)
+                    metric = RoadMetric.build(problem, payload.city, anchor=anchor, speed_kmh=payload.speed_kmh)
                 except (RoadError, ValueError) as exc:
                     raise HTTPException(502, "Road routing service unavailable; load with straight-line distances instead") from exc
                 problem = replace(problem, metric=metric)
             else:
-                metric = RoadMetric.for_problem(problem, payload.city, anchor=anchor)
+                metric = RoadMetric.for_problem(problem, payload.city, anchor=anchor, speed_kmh=payload.speed_kmh if payload.routing == "road" else None)
             candidate = Comparison(problem, solve_static(problem, time_limit_seconds=2))
         except SolveError as exc:
             raise HTTPException(503, str(exc)) from exc

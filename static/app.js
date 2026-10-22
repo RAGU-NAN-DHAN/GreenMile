@@ -152,7 +152,13 @@
       default: return v.served_count && !v.pending_count ? 'Finished for the day' : 'Idle at depot';
     }
   }
-  const timeText = v => v.status === 'broken' ? 'Broke down' : v.finish == null ? 'No route' : v.finish <= t ? `Back at depot (${fmt(v.finish, 0)} min)` : `Back at depot at ${fmt(v.finish, 0)} min`;
+  // Route time = minutes of driving in total; the day clock can run later because trucks wait for customer time windows.
+  const timeText = (v, route) => {
+    if (v.status === 'broken') return 'Broke down';
+    if (v.finish == null) return 'No route';
+    const drive = Math.round(v.distance_travelled + (route ? routeLength(route, 'future') : 0));
+    return `${drive} min driving · ${v.finish <= t ? 'back at depot' : 'back at depot at'} ${fmt(v.finish, 0)} min`;
+  };
 
   function renderFleet() {
     const s = current();
@@ -167,7 +173,7 @@
       const loadPct = v.capacity ? Math.round(v.used_capacity / v.capacity * 100) : 0;
       return `<button class="trow ${(v.activity || {}).kind || ''} ${v.id === selected ? 'sel' : ''}" data-id="${v.id}">
         <span class="tbadge">${TRUCK_SVG}<i>${v.id}</i></span>
-        <span class="tmain"><b>Truck ${v.id}</b><small>${activityText(v)}</small><small class="tt">${timeText(v)}</small>
+        <span class="tmain"><b>Truck ${v.id}</b><small>${activityText(v)}</small><small class="tt">${timeText(v, s.routes.find(r => r.vehicle_id === v.id))}</small>
           <span class="bar"><span style="width:${done}%"></span></span></span>
         <span class="tload">${loadPct}%<small>load</small></span></button>`;
     }).join('') || '<p class="muted small pad">No trucks match this filter.</p>';
@@ -188,7 +194,7 @@
     $('map-note').hidden = mode !== 'street';
     $('street').classList.toggle('active', mode === 'street');
     $('map-note').textContent = data.routing === 'road'
-      ? `Grid placed on the map · planned on road distances (1 unit ≈ ${Math.round(data.geo.metres_per_unit)} m)`
+      ? `Grid placed on the map · planned on road distances at ${data.geo.speed_kmh || Math.round(data.geo.metres_per_unit * 0.06)} km/h average`
       : 'Illustrative placement of Solomon x/y data on a street map · distances are in Solomon units';
     if (mode === 'street') drawStreet(); else { $('c-road').textContent = '–'; drawPlain(); }
   }
@@ -314,7 +320,7 @@
         el.querySelector('.tkb').className = `tkb ${(v.activity || {}).kind || ''} ${v.id === selected ? 'sel' : ''}`;
       }
       entry.marker.setZIndexOffset(v.id === selected ? 1000 : 0);
-      entry.marker.bindTooltip(`Truck ${v.id} · ${activityText(v)}<br>Load ${v.used_capacity}/${v.capacity} · ${timeText(v)}`);
+      entry.marker.bindTooltip(`Truck ${v.id} · ${activityText(v)}<br>Load ${v.used_capacity}/${v.capacity} · ${timeText(v, s.routes.find(r => r.vehicle_id === v.id))}`);
     });
     for (const [id, entry] of trucks) if (!shownIds.has(id)) { vlayer.removeLayer(entry.marker); trucks.delete(id); }
     const idleCount = s.vehicles.filter(v => (v.activity || {}).kind === 'idle').length;
@@ -521,7 +527,7 @@
   async function loadDataset() {
     stop();
     try {
-      const body = {dataset: $('dataset').value, reset: true, routing: $('routing').value, city: $('city').value};
+      const body = {dataset: $('dataset').value, reset: true, routing: $('routing').value, city: $('city').value, speed_kmh: Number($('speed-kmh').value)};
       if (anchor) { body.depot_lat = anchor.lat; body.depot_lng = anchor.lng; }
       const next = await post('/load', body, $('routing').value === 'road' ? 'Fetching road distances and planning…' : 'Planning routes…');
       selectedOrder = null; viewRev++;
@@ -592,6 +598,7 @@
   $('z-reset').onclick = () => { viewRev++; if (data) drawMap(); };
   $('street').onclick = () => { mode = mode === 'street' ? 'plain' : 'street'; if (data) { drawMap(); if (mode === 'plain') Plotly.Plots.resize($('map')); } };
   $('city').onchange = () => { anchor = null; if (data) loadDataset(); };
+  $('speed-kmh').onchange = () => { if (data) loadDataset(); };
   $('depot-pin').onclick = () => {
     if (!data) return;
     if (mode !== 'street') { mode = 'street'; drawMap(); }

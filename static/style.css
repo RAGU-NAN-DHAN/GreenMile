@@ -246,3 +246,13 @@ tr.selected{background:#171908}tr.selected td:first-child{color:var(--accent)}
 #lmap.z-low .tkb::after{border-radius:50%;inset:-4px}
 #lmap.z-low .tkb.sel{box-shadow:0 0 0 4px rgba(206,222,98,.35)}
 #lmap.z-low .idle-badge,#lmap.z-mid .idle-badge{font-size:9px;padding:0 6px}
+
+/* plain status line (no accent bar, no tinted box) */
+.message{background:transparent;border:0;border-bottom:1px solid var(--line);border-radius:0;color:var(--muted);padding:6px 2px 10px;margin:8px 0 4px;font-size:13px;display:flex;align-items:center;gap:10px;min-height:0}
+.message::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--grey);flex:none}
+.message.error{background:transparent;border-bottom-color:#5a2c25;color:#ffb4a8}
+.message.error::before{background:var(--red)}
+
+/* one plus only: the brand tile lives at the top of the sidebar */
+.logo{width:42px;height:42px;border-radius:13px;background:var(--accent);color:#1a1d00;display:grid;place-content:center;font-size:23px;font-weight:700;margin-bottom:14px}
+.brandbar{margin:2px 0 6px}

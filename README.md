@@ -407,7 +407,8 @@ distances are measured between the snapped points.
 - **Time** is shown in minutes: the Solomon time units are read as minutes (a depot window of
   230 means a 230-minute day). Play speed is simulated minutes per real second (default 1 min/s).
 - **Distance** is shown in km in road mode and in Solomon units in straight-line mode.
-- In road mode, travel time equals road distance in calibrated units (about 134 m per minute for
-  R101 at VIT), which implies a slow average speed (about 8 km/h) because the Solomon windows are
-  tight. It is a modelling choice, not a measured speed; calibrating to a realistic speed (for
-  example 25 km/h) would loosen the time windows and change the plans.
+- In road mode one time unit is one minute of driving at the chosen average speed (default
+  25 km/h, adjustable in the header), so a 4 km leg takes about 10 minutes. Real kilometres =
+  units x (speed x 1000 / 60) / 1000. Trucks can still show a late "back at depot" time because the
+  Solomon customer time windows are spread over the whole 230-minute day and trucks wait for them;
+  the fleet panel therefore also shows each truck's total driving minutes.

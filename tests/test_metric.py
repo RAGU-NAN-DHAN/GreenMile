@@ -50,7 +50,8 @@ def test_api_road_mode_reports_geo_and_depot_anchor(monkeypatch):
     state = client.post("/load", json={"dataset": "C101", "reset": True, "routing": "road", "city": "vit",
                                        "depot_lat": 12.97012, "depot_lng": 79.15876}).json()
     assert state["routing"] == "road" and state["geo"]["lat0"] == 12.97012
-    assert state["geo"]["metres_per_unit"] == pytest.approx(80 * 1.5, rel=0.02)
+    assert state["geo"]["speed_kmh"] == 25
+    assert state["geo"]["metres_per_unit"] == pytest.approx(25 * 1000 / 60)       # one minute of driving at 25 km/h
     assert state["kpis"]["replan"]["dropped_orders"] == 0
 
 
@@ -92,3 +93,22 @@ def test_straight_line_mode_has_no_snapped_fields():
     state = client.post("/load", json={"dataset": "C101", "reset": True, "routing": "euclid"}).json()
     s = state["strategies"]["replan"]
     assert "lat" not in s["customers"][0] and "lat" not in s["depot"]
+
+
+def test_average_speed_sets_metres_per_minute(monkeypatch):
+    monkeypatch.setattr(metric, "fetch_table", fake_table)
+    client = TestClient(api.app)
+    state = client.post("/load", json={"dataset": "C101", "reset": True, "routing": "road", "speed_kmh": 40}).json()
+    assert state["geo"]["metres_per_unit"] == pytest.approx(40 * 1000 / 60)
+    assert client.post("/load", json={"dataset": "C101", "reset": True, "speed_kmh": 1}).status_code == 422
+
+
+def test_faster_trucks_drive_fewer_minutes(monkeypatch):
+    monkeypatch.setattr(metric, "fetch_table", fake_table)
+    client = TestClient(api.app)
+    km = {}
+    for speed in (15, 40):
+        s = client.post("/load", json={"dataset": "C101", "reset": True, "routing": "road", "speed_kmh": speed}).json()
+        k = s["kpis"]["replan"]
+        km[speed] = (k["distance"], k["distance"] * s["geo"]["metres_per_unit"] / 1000)
+    assert km[40][0] < km[15][0]                        # fewer minutes of driving at higher speed
