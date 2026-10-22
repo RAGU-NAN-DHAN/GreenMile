@@ -369,3 +369,10 @@ road. The solver still plans on Solomon x/y distances, so road kilometres are
 informational and do not change the KPIs. Points that fall off-road (rivers, forest)
 snap to the nearest road. The OSRM demo server is for light use only; self-host OSRM
 or use another routing service for anything heavier.
+
+## Deploy
+
+- **Render:** New > Blueprint > select this repo (uses `render.yaml`).
+- **Hugging Face Spaces:** New Space > Docker SDK, push this repo (uses `Dockerfile`, port 7860).
+- The app keeps one in-memory session per process, so everyone on the same URL shares the same simulation.
+- The first load of each leg on the street map calls the public OSRM server; the free tier may sleep, so open the URL once before a live demo.
