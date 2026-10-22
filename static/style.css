@@ -272,3 +272,15 @@ select option:checked,select option:hover{background-color:#3a3d18;color:#f4f4f4
 .wheels i{width:48px;height:48px;bottom:0;border-radius:50%;background:#0a0a09;border:7px solid #232322;box-shadow:0 0 0 3px #111110}
 .wheels i::after{content:"";position:absolute;inset:9px;border-radius:50%;background:#8e8f95;box-shadow:inset 0 0 0 3px #5c5c5b}
 .wheels i:nth-child(1){left:9%;right:auto}.wheels i:nth-child(2){left:20%;right:auto}.wheels i:nth-child(3){right:20px;left:auto}
+
+/* cargo is loaded from the floor of the trailer upwards: first row at the bottom, then stacked above */
+.trailer{display:flex;flex-wrap:wrap-reverse;align-content:flex-start;gap:6px}
+.trailer .tile{flex:0 0 calc((100% - 18px) / 4);min-height:60px}
+.trailer>.muted{flex:1 1 100%}
+
+/* ground the truck: road under the wheels, chassis frame joining wheels to the body */
+.truck{margin-bottom:26px}
+.truck::after{content:"";position:absolute;left:-14px;right:-14px;bottom:-8px;height:8px;background:linear-gradient(#1c1c1b,#0e0e0d);border-top:2px solid #3f3f3d;border-radius:0 0 6px 6px}
+.trailer{position:relative}
+.trailer::after{content:"";position:absolute;left:10px;right:8px;bottom:-12px;height:12px;background:#161615;border:1px solid var(--line2);border-top:0;border-radius:0 0 6px 6px}
+.wheels i{box-shadow:0 0 0 3px #111110,0 7px 6px -3px rgba(0,0,0,.9)}
