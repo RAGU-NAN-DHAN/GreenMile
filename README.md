@@ -376,3 +376,23 @@ or use another routing service for anything heavier.
 - **Hugging Face Spaces:** New Space > Docker SDK, push this repo (uses `Dockerfile`, port 7860).
 - The app keeps one in-memory session per process, so everyone on the same URL shares the same simulation.
 - The first load of each leg on the street map calls the public OSRM server; the free tier may sleep, so open the URL once before a live demo.
+
+## Road-distance planning (default in the dashboard)
+
+Choose **Distance: Road** (default) or **Straight-line** in the header. In road mode
+(`metric.py`) the Solomon grid is placed on a map location (VIT Vellore by default, or
+any city/point you pick), OSRM driving distances are fetched, and the solver, simulator,
+baselines and KPIs all use them: travel time equals road distance, so plans, late
+deliveries and re-planning are road-based. One "unit" is calibrated so the average road
+leg equals the average straight leg, which keeps the Solomon time windows meaningful;
+real kilometres = distance x metres-per-unit / 1000 (shown in the Road chip).
+
+- Click the pin button on the map, then click the exact spot, to put the depot there;
+  the customers are laid out around it and everything is re-planned.
+- Straight-line mode is the original Solomon benchmark metric (used by `benchmark.py`
+  and most tests). Road results are not comparable with published Solomon values.
+- Only drivable roads are used (OSRM car profile), so rail tracks are never routed
+  along; they are crossed only at real crossings or bridges. Private campus roads may
+  be avoided by the routing service, so routes inside a campus can detour via public roads.
+- If the routing service is unreachable, loading in road mode fails with a clear message
+  (use Straight-line); distances that cannot be fetched mid-session fall back to estimates.

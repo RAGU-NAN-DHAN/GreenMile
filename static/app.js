@@ -18,19 +18,19 @@
   let view = 'ops';
   let mode = 'plain';         // 'plain' (Plotly x/y) or 'street' (Leaflet, illustrative placement)
   let lmap = null, llayer = null, fitted = '';
-  // Solomon x/y units are placed on a real city at 80 m per unit. Cosmetic only: the solver still works in x/y.
-  const CITIES = {vellore: [12.9165, 79.1325], chennai: [13.0827, 80.2707], bengaluru: [12.9716, 77.5946]};
-  const METRES_PER_UNIT = 80;
-  function toLatLng(x, y, centre) {
-    const [lat0, lng0] = CITIES[$('city').value];
-    return [lat0 + (y - centre.y) * METRES_PER_UNIT / 111320,
-            lng0 + (x - centre.x) * METRES_PER_UNIT / (111320 * Math.cos(lat0 * Math.PI / 180))];
+  // The backend places the Solomon grid on the map (data.geo): the point (cx, cy) sits at (lat0, lng0), place_m metres per unit.
+  function toLatLng(x, y) {
+    const g = data.geo;
+    return [g.lat0 + (y - g.cy) * g.place_m / 111320,
+            g.lng0 + (x - g.cx) * g.place_m / (111320 * Math.cos(g.lat0 * Math.PI / 180))];
   }
-  function fromLatLng(latlng, centre) {
-    const [lat0, lng0] = CITIES[$('city').value];
-    return [centre.x + (latlng.lng - lng0) * 111320 * Math.cos(lat0 * Math.PI / 180) / METRES_PER_UNIT,
-            centre.y + (latlng.lat - lat0) * 111320 / METRES_PER_UNIT];
+  function fromLatLng(latlng) {
+    const g = data.geo;
+    return [g.cx + (latlng.lng - g.lng0) * 111320 * Math.cos(g.lat0 * Math.PI / 180) / g.place_m,
+            g.cy + (latlng.lat - g.lat0) * 111320 / g.place_m];
   }
+  let anchor = null;          // exact depot location chosen on the map: {lat, lng}
+  let settingDepot = false;
 
   // ---------- helpers ----------
   async function api(path, options = {}) {
@@ -124,6 +124,7 @@
     renderLog();
 
     drawMap();
+    if (data.routing === 'road') $('c-road').textContent = `${(k.distance * data.geo.metres_per_unit / 1000).toFixed(1)} km`;
     renderCard();
     if (view === 'vehicle') renderVehicle();
     if (view === 'compare') renderCompare();
@@ -142,8 +143,10 @@
     $('map').hidden = mode === 'street';
     $('lmap').hidden = mode !== 'street';
     $('map-note').hidden = mode !== 'street';
-    $('city-label').hidden = mode !== 'street';
     $('street').classList.toggle('active', mode === 'street');
+    $('map-note').textContent = data.routing === 'road'
+      ? `Grid placed on the map · planned on road distances (1 unit ≈ ${Math.round(data.geo.metres_per_unit)} m)`
+      : 'Illustrative placement of Solomon x/y data on a street map · distances are in Solomon units';
     if (mode === 'street') drawStreet(); else { $('c-road').textContent = '–'; drawPlain(); }
   }
 
@@ -187,24 +190,22 @@
   function drawStreet() {
     const s = current();
     if (typeof L === 'undefined') { say('The street map library did not load. Switching back to the plain map.', true); mode = 'plain'; return drawMap(); }
-    const centre = {x: (Math.min(...s.customers.map(c => c.x)) + Math.max(...s.customers.map(c => c.x))) / 2,
-                    y: (Math.min(...s.customers.map(c => c.y)) + Math.max(...s.customers.map(c => c.y))) / 2};
-    const ll = (x, y) => toLatLng(x, y, centre);
+    const ll = (x, y) => toLatLng(x, y);
     if (!lmap) {
       lmap = L.map('lmap', {zoomControl: false, attributionControl: true, preferCanvas: true});
       L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',
         {maxZoom: 19, attribution: '© OpenStreetMap contributors'}).addTo(lmap);
       llayer = L.layerGroup().addTo(lmap);
       lmap.on('click', ev => {
+        if (settingDepot) { settingDepot = false; $('depot-pin').classList.remove('active'); anchor = {lat: ev.latlng.lat, lng: ev.latlng.lng}; loadDataset(); return; }
         if (!placing) return;
-        const [x, y] = fromLatLng(ev.latlng, lmap._centre);
+        const [x, y] = fromLatLng(ev.latlng);
         $('order-x').value = Math.round(x); $('order-y').value = Math.round(y);
         $('order-ready').value = Math.round(t); $('order-due').value = data.max_time;
         setPlacing(false);
         say(`Location set to (${Math.round(x)}, ${Math.round(y)}). Review the form below the map and press Add order.`);
       });
     }
-    lmap._centre = centre;
     llayer.clearLayers();
     const showRoutes = $('t-routes').checked, showAlerts = $('t-alerts').checked;
 
@@ -228,7 +229,7 @@
         if (rest.length > 1) L.polyline(rest, {color: isSel ? ACCENT : OLIVE, weight: isSel ? 4 : 2.5, opacity: isSel ? 1 : .85, interactive: false}).addTo(llayer);
       });
     });
-    $('c-road').textContent = legsTotal ? `${(roadMetres / 1000).toFixed(1)} km${legsLoaded < legsTotal ? '…' : ''}` : '–';
+    if (data.routing !== 'road') $('c-road').textContent = legsTotal ? `${(roadMetres / 1000).toFixed(1)} km${legsLoaded < legsTotal ? '…' : ''}` : '–';
     s.customers.forEach(c => {
       L.circleMarker(ll(c.x, c.y), {radius: c.status === 'servicing' ? 8 : 6, color: '#040404', weight: 1, fillColor: STATUS_COLOURS[c.status], fillOpacity: 1})
         .bindTooltip(`Order ${c.id} · ${c.status}<br>Demand ${c.demand} · window ${c.ready}–${c.due}<br>Vehicle ${c.vehicle_id ?? 'unassigned'}`).addTo(llayer);
@@ -243,7 +244,7 @@
     L.marker(ll(s.depot.x, s.depot.y), {icon: L.divIcon({className: '', html: '<div class="vmark" style="transform:rotate(45deg);background:#fff"></div>', iconSize: [16, 16], iconAnchor: [8, 8]})})
       .bindTooltip(`Depot · closes at ${data.max_time}`).addTo(llayer);
 
-    const key = `${data.session_id}-${viewRev}-${$('city').value}`;
+    const key = `${data.session_id}-${viewRev}`;
     lmap.invalidateSize();
     if (fitted !== key) {
       fitted = key;
@@ -440,7 +441,9 @@
   async function loadDataset() {
     stop();
     try {
-      const next = await post('/load', {dataset: $('dataset').value, reset: true}, 'Planning routes…');
+      const body = {dataset: $('dataset').value, reset: true, routing: $('routing').value, city: $('city').value};
+      if (anchor) { body.depot_lat = anchor.lat; body.depot_lng = anchor.lng; }
+      const next = await post('/load', body, $('routing').value === 'road' ? 'Fetching road distances and planning…' : 'Planning routes…');
       selectedOrder = null; viewRev++;
       say(`${next.dataset} loaded. Press Play, or move the slider to t=90 and take a vehicle offline.`);
       await fetchState(0);
@@ -496,7 +499,13 @@
   $('z-out').onclick = () => zoom(1.25);
   $('z-reset').onclick = () => { viewRev++; if (data) drawMap(); };
   $('street').onclick = () => { mode = mode === 'street' ? 'plain' : 'street'; if (data) { drawMap(); if (mode === 'plain') Plotly.Plots.resize($('map')); } };
-  $('city').onchange = () => { if (data && mode === 'street') drawMap(); };
+  $('city').onchange = () => { anchor = null; if (data) loadDataset(); };
+  $('depot-pin').onclick = () => {
+    if (!data) return;
+    if (mode !== 'street') { mode = 'street'; drawMap(); }
+    settingDepot = !settingDepot; $('depot-pin').classList.toggle('active', settingDepot);
+    if (settingDepot) say('Zoom to the exact spot and click the map to place the depot there. Routes are re-planned around it.');
+  };
   $('place').onclick = () => { if (data && t >= data.committed_time) { setPlacing(!placing); if (placing) say('Click the map to choose the new order location.'); } };
   $('break').onclick = () => breakVehicle($('vehicle-select').value);
   $('vd-break').onclick = () => breakVehicle(selected);

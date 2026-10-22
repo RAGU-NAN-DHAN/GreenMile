@@ -4,6 +4,7 @@ from dataclasses import asdict, dataclass, field
 import math
 from time import perf_counter
 
+from metric import prefetch
 from models import Customer, Plan, Problem, VehicleRoute, VehicleStart
 from solver import SolveError, solve_dynamic
 
@@ -154,7 +155,9 @@ class FleetState:
                                        v.capacity-v.used_capacity-reserved))
         pending = tuple(c for i, c in self.nodes_data.items()
                         if i and self.node_status[i] != "served" and i not in locked)
-        problem = Problem(self.problem.name, len(starts), self.problem.vehicle_capacity, self.problem.depot, pending)
+        problem = Problem(self.problem.name, len(starts), self.problem.vehicle_capacity, self.problem.depot, pending,
+                          self.problem.metric)
+        prefetch(problem, [(c.x, c.y) for c in (problem.depot, *pending)] + [(s.x, s.y) for s in starts])
         return problem, tuple(starts), prefixes
 
     def _replan(self, seconds):

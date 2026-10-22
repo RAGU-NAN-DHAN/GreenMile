@@ -1,5 +1,5 @@
 """Shared input models. Distances and times remain in source units."""
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 
 @dataclass(frozen=True)
@@ -20,6 +20,8 @@ class Problem:
     vehicle_capacity: int
     depot: Customer
     customers: tuple[Customer, ...]
+    # Optional distance model (None = straight-line Solomon distances); see metric.py.
+    metric: object | None = field(default=None, compare=False, repr=False)
 
     @property
     def nodes(self) -> tuple[Customer, ...]:

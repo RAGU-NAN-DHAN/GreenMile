@@ -1,4 +1,5 @@
 """S5 dashboard: one process and one in-memory comparison session."""
+from dataclasses import replace
 from pathlib import Path
 from threading import RLock
 from typing import Annotated, Literal
@@ -10,6 +11,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 from comparison import Comparison
 from kpis import calculate_kpis
+from metric import CITIES, RoadError, RoadMetric
 from parser import find_dataset, load_solomon
 from solver import SolveError, solve_static
 
@@ -20,6 +22,7 @@ current: Comparison | None = None
 session_id = ""
 revision = 0
 dataset_name = ""
+session_routing, session_geo, session_metric = "euclid", None, None
 
 # Road geometry for the street-map view. Cosmetic: the solver still uses Solomon x/y distances.
 OSRM_URL = "https://router.project-osrm.org/route/v1/driving/{lng1},{lat1};{lng2},{lat2}?overview=full&geometries=geojson"
@@ -44,6 +47,18 @@ class StrictModel(BaseModel):
 class LoadPayload(StrictModel):
     dataset: Literal["C101", "R101", "RC101"] = "R101"
     reset: bool = False
+    # "road" plans on OSRM driving distances for the chosen city; "euclid" is the Solomon benchmark metric.
+    routing: Literal["euclid", "road"] = "euclid"
+    city: Literal["vit", "vellore", "chennai", "bengaluru"] = "vit"
+    # Optional exact depot location; the Solomon grid is laid out around it.
+    depot_lat: float | None = Field(default=None, ge=-90, le=90)
+    depot_lng: float | None = Field(default=None, ge=-180, le=180)
+
+    @model_validator(mode="after")
+    def depot_pair(self):
+        if (self.depot_lat is None) != (self.depot_lng is None):
+            raise ValueError("depot_lat and depot_lng must be given together")
+        return self
 
 
 class EventBase(StrictModel):
@@ -87,7 +102,8 @@ def metadata():
     state = comparison.states["replan"]
     return {"dataset": dataset_name, "session_id": session_id, "revision": revision,
             "max_time": state.problem.depot.due, "committed_time": state.current_time,
-            "event_count": len(comparison.events)}
+            "event_count": len(comparison.events), "routing": session_routing, "geo": session_geo,
+            "road_degraded": bool(session_metric and session_metric.degraded)}
 
 
 def validate_time(t):
@@ -154,16 +170,27 @@ def home():
 
 @app.post("/load")
 def load(payload: LoadPayload):
-    global current, session_id, revision, dataset_name
+    global current, session_id, revision, dataset_name, session_routing, session_geo, session_metric
     with lock:
         if current is not None and current.events and not payload.reset:
             raise HTTPException(409, "Reset confirmation is required to discard existing events")
         try:
             problem = load_solomon(find_dataset(ROOT / "data" / "solomon", payload.dataset))
+            anchor = None if payload.depot_lat is None else (payload.depot_lat, payload.depot_lng)
+            if payload.routing == "road":
+                try:
+                    metric = RoadMetric.build(problem, payload.city, anchor=anchor)
+                except (RoadError, ValueError) as exc:
+                    raise HTTPException(502, "Road routing service unavailable; load with straight-line distances instead") from exc
+                problem = replace(problem, metric=metric)
+            else:
+                metric = RoadMetric.for_problem(problem, payload.city, anchor=anchor)
             candidate = Comparison(problem, solve_static(problem, time_limit_seconds=2))
         except SolveError as exc:
             raise HTTPException(503, str(exc)) from exc
         current = candidate
+        session_routing, session_geo = payload.routing, metric.geo
+        session_metric = metric if payload.routing == "road" else None
         dataset_name, session_id, revision = payload.dataset, uuid4().hex, 0
         return state_response(0)
 

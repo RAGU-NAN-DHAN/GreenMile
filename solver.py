@@ -9,6 +9,7 @@ from time import perf_counter
 from ortools.constraint_solver import pywrapcp, routing_enums_pb2
 
 from models import DynamicPlan, Plan, Problem, RouteStop, VehicleRoute, VehicleStart
+from metric import leg_tenths, prefetch
 from parser import find_dataset, load_solomon
 
 SCALE = 10
@@ -19,8 +20,8 @@ class SolveError(RuntimeError):
 
 
 def distance_matrix(problem: Problem) -> list[list[int]]:
-    return [[int(math.floor(math.hypot(a.x - b.x, a.y - b.y) * SCALE + 0.5))
-             for b in problem.nodes] for a in problem.nodes]
+    prefetch(problem, [(c.x, c.y) for c in problem.nodes])
+    return [[leg_tenths(problem, a.x, a.y, b.x, b.y) for b in problem.nodes] for a in problem.nodes]
 
 
 def solve_static(problem: Problem, time_limit_seconds: float = 2) -> Plan:
@@ -158,7 +159,9 @@ def solve_dynamic(problem: Problem, starts: tuple[VehicleStart, ...], now: float
                            "DEPOT_CLOSED", time_limit_seconds)
     customers = problem.nodes
     coordinates = [(c.x, c.y) for c in customers] + [(s.x, s.y) for s in starts]
-    distances = [[int(math.floor(math.hypot(x-a, y-b)*SCALE+.5)) for a, b in coordinates]
+    prefetch(problem, coordinates)
+    # Arcs into a vehicle's start node are never used, so they are never fetched or fetched lazily.
+    distances = [[leg_tenths(problem, x, y, a, b, fetch=j < len(customers)) for j, (a, b) in enumerate(coordinates)]
                  for x, y in coordinates]
     service = [math.ceil(c.service*SCALE) if c.id else 0 for c in customers] + [0]*len(starts)
     start_nodes = list(range(len(customers), len(coordinates)))

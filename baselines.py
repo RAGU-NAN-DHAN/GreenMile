@@ -6,6 +6,7 @@ Normal callers should use Comparison or FleetState's event methods.
 import math
 from time import perf_counter
 
+from metric import leg_tenths
 from models import RouteStop, VehicleRoute
 
 STRATEGIES = ("do_nothing", "cheapest_insertion", "replan")
@@ -25,7 +26,7 @@ def _candidate_route(state, start, order_ids):
     distance = load = 0
     for customer_id in [*order_ids, 0]:
         customer = state.nodes_data[customer_id]
-        leg = int(math.floor(math.hypot(customer.x-x, customer.y-y)*SCALE+.5))
+        leg = leg_tenths(state.problem, x, y, customer.x, customer.y)
         arrival = departure+leg
         service_start = max(arrival, math.ceil((customer.ready-now)*SCALE-EPS), 0)
         if service_start > math.floor((customer.due-now)*SCALE+EPS):
