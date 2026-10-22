@@ -1,180 +1,388 @@
-/* S5: real API-backed map, read-only playback, and shared events. */
+/* GreenMile dashboard: Operations map, vehicle detail and strategy comparison.
+   Talks to the FastAPI backend (/load, /state, /event). No business logic lives here. */
 (() => {
-  'use strict';
   const $ = id => document.getElementById(id);
-  const names = {replan: 'OR-Tools re-plan', cheapest_insertion: 'Cheapest insertion', do_nothing: 'Do nothing'};
-  const palette = ['#6be4c1','#79a9ff','#eab96e','#bf9aff','#f38eaf','#71d7e9','#ccdc7b','#ee9b72','#82cbb0','#96a0ed'];
-  const statusColours = {pending:'#f4bc66',servicing:'#b7a4ff',served:'#65e2bd',unassigned:'#ff7f88'};
-  let frame = null, targetTime = 0, busy = false, playing = false, timer = null;
-  let requestNumber = 0, controller = null, debounce = null, placing = false, preview = null;
-  let plotReady = false, renderQueue = Promise.resolve(), renderNumber = 0;
-  const fmt = (v, digits=1) => Number(v).toLocaleString(undefined, {maximumFractionDigits:digits, minimumFractionDigits:digits});
-  const runtime = seconds => seconds < .01 ? `${fmt(seconds*1000, 2)} ms` : `${fmt(seconds, 3)} s`;
-  const selected = () => $('strategy').value;
-  const history = () => frame && targetTime < frame.committed_time;
-  const canEvent = () => frame && !busy && !history() && Math.abs(frame.time-targetTime) < 1e-8;
-  function message(text, error=false) { $('message').textContent=text; $('message').classList.toggle('error',error); }
-  function pause() { playing=false; clearTimeout(timer); $('play').textContent='▶ Play'; $('play').setAttribute('aria-label','Play simulation'); }
-  function controls() {
-    $('load').disabled=busy; $('dataset').disabled=busy;
-    $('time-slider').disabled=busy || !frame; $('play').disabled=busy || !frame;
-    $('strategy').disabled=busy; $('speed').disabled=busy;
-    $('break').disabled=!canEvent() || !$('vehicle-select').value;
-    $('vehicle-select').disabled=!canEvent(); $('place').disabled=!canEvent();
-    $('order-fields').disabled=!canEvent(); $('jump-live').hidden=!history();
-    $('timeline-status').textContent=!frame ? 'Viewing the initial plan' : history()
-      ? `Historical view · new events available from t=${fmt(frame.committed_time,2)}`
-      : `Read-only playback · latest committed event at t=${fmt(frame.committed_time,2)}`;
-  }
-  function setBusy(value, label='Comparing recovery strategies…') {
-    busy=value; if(value) {pause(); cancelRead(); placing=false; $('place').classList.remove('active');}
-    $('busy-overlay').hidden=!value; $('busy-label').textContent=label; controls();
-  }
-  function cancelRead() { requestNumber++; if(controller) controller.abort(); clearTimeout(debounce); }
-  async function api(path, options={}) {
-    const response=await fetch(path, options);
-    let body;
-    try {body=await response.json();} catch {throw new Error(`Server returned ${response.status}. Check the running terminal.`);}
-    if(!response.ok) {
-      let detail=body.detail;
-      if(Array.isArray(detail)) detail=detail.map(x=>`${x.loc.slice(1).join('.')}: ${x.msg}`).join('; ');
-      const error=new Error(detail || `Request failed (${response.status})`); error.status=response.status; throw error;
+  const STRATEGY_NAMES = {replan: 'OR-Tools re-plan', cheapest_insertion: 'Cheapest insertion', do_nothing: 'Do nothing'};
+  const STATUS_COLOURS = {pending: '#e8b04a', servicing: '#b7a4ff', served: '#7bb15d', unassigned: '#e5604d'};
+  const ACCENT = '#cede62', OLIVE = '#8a852b';
+
+  let data = null;            // latest /state response
+  let t = 0;                  // displayed simulation time
+  let selected = 0;           // selected vehicle id
+  let selectedOrder = null;   // selected order id in the vehicle view
+  let filter = 'all';
+  let placing = false;
+  let timer = null;
+  let controller = null;
+  let viewRev = 0;            // bump to reset map zoom
+  let view = 'ops';
+
+  // ---------- helpers ----------
+  async function api(path, options = {}) {
+    const response = await fetch(path, options);
+    const body = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      const detail = body.detail;
+      throw new Error(typeof detail === 'string' ? detail : Array.isArray(detail) ? detail.map(d => d.msg).join('; ') : 'Request failed');
     }
     return body;
   }
-  function setTime(t) {targetTime=Number(t); $('time-slider').value=targetTime; $('time-value').textContent=fmt(targetTime,2); controls();}
-  async function fetchFrame(t) {
-    const id=++requestNumber; if(controller) controller.abort(); controller=new AbortController();
+  function say(text, error = false) {
+    const el = $('message');
+    el.textContent = text;
+    el.classList.toggle('error', error);
+  }
+  function busy(on, label = 'Planning routes…') {
+    $('busy').hidden = !on;
+    $('busy-label').textContent = label;
+  }
+  const fmt = (n, d = 1) => Number(n).toFixed(d);
+  const group = status => status === 'broken' ? 'broken' : status === 'idle' ? 'idle' : 'active';
+  const current = () => data.strategies[$('strategy').value];
+  const vehicleById = id => current().vehicles.find(v => v.id === id);
+  const routeLength = (route, key) => route[key].reduce((sum, [a, b]) => sum + Math.hypot(b[0] - a[0], b[1] - a[1]), 0);
+  const pill = (text, kind = '') => `<i class="pill ${kind}">${text}</i>`;
+  const statusKind = s => ({pending: 'warn', servicing: 'vio', served: 'ok', unassigned: 'bad'}[s] || '');
+
+  // ---------- state ----------
+  async function fetchState(time) {
+    if (controller) controller.abort();
+    controller = new AbortController();
     try {
-      const data=await api(`/state?t=${encodeURIComponent(t)}`,{signal:controller.signal});
-      if(id!==requestNumber || busy) return false;
-      await accept(data); return true;
-    } catch(error) {if(error.name!=='AbortError' && id===requestNumber){pause();message(error.message,true);} return false;}
+      accept(await api(`/state?t=${encodeURIComponent(time)}`, {signal: controller.signal}));
+    } catch (e) {
+      if (e.name !== 'AbortError') say(e.message, true);
+    }
   }
-  async function accept(data) {
-    frame=data; targetTime=data.time;
-    $('dataset').value=data.dataset; $('time-slider').max=data.max_time; $('time-slider').step='0.25';
-    $('time-max').textContent=fmt(data.max_time,0); setTime(data.time);
-    $('session-badge').textContent=`${data.dataset} · ${data.kpis.replan.total_orders} customers · ${data.event_count} total events`;
-    $('map-empty').hidden=true; updateVehicles(); updateMetrics(); updateEvents(); controls();
-    await drawMap();
+
+  function accept(next) {
+    data = next;
+    t = data.time;
+    const slider = $('time-slider');
+    slider.max = data.max_time;
+    slider.value = t;
+    slider.disabled = false;
+    $('play').disabled = false;
+    $('map-empty').hidden = true;
+    const ids = current().vehicles.map(v => v.id);
+    if (!ids.includes(selected)) selected = ids[0] ?? 0;
+    render();
   }
-  function updateVehicles() {
-    if(!frame) return;
-    const old=$('vehicle-select').value;
-    const vehicles=frame.strategies[selected()].vehicles.filter(v=>v.status!=='broken')
-      .sort((a,b)=>Number(b.pending_count>0)-Number(a.pending_count>0) || a.id-b.id);
-    $('vehicle-select').replaceChildren(...vehicles.map(v=>new Option(`Vehicle ${v.id} · ${v.status} · ${v.pending_count} pending`,v.id)));
-    if(vehicles.some(v=>String(v.id)===old)) $('vehicle-select').value=old;
-    if(!vehicles.length) $('vehicle-select').replaceChildren(new Option('No healthy vehicles',''));
-    vehicleDetail();
+
+  // ---------- rendering ----------
+  function render() {
+    if (!data) return;
+    const s = current(), k = data.kpis[$('strategy').value];
+    const live = t >= data.committed_time;
+
+    $('subtitle').textContent = `${data.dataset} · ${k.total_orders} orders · t = ${fmt(t, 0)} of ${data.max_time}`;
+    $('time-value').textContent = fmt(t, 0);
+    $('time-max').textContent = data.max_time;
+    $('timeline-status').textContent = live ? 'Viewing the latest state' : `Historical view · latest event at t=${fmt(data.committed_time, 0)}`;
+    $('jump-live').hidden = live;
+
+    // KPI chips
+    const active = s.vehicles.filter(v => group(v.status) === 'active').length;
+    $('c-active').textContent = `${active}/${s.vehicles.length}`;
+    $('c-served').textContent = `${k.served_orders}/${k.total_orders}`;
+    $('c-late').textContent = k.late_deliveries;
+    $('c-drop').textContent = k.dropped_orders;
+    $('c-dist').textContent = fmt(k.distance);
+    $('c-solve').textContent = `${fmt(k.solve_time_sec, 2)}s`;
+
+    // filter counts
+    const counts = {all: s.vehicles.length, active, idle: 0, broken: 0};
+    s.vehicles.forEach(v => { const g = group(v.status); if (g !== 'active') counts[g]++; });
+    for (const key of Object.keys(counts)) $('n-' + key).textContent = counts[key];
+
+    // event controls
+    const select = $('vehicle-select');
+    const available = s.vehicles.filter(v => v.status !== 'broken');
+    const previous = select.value;
+    select.innerHTML = available.map(v => `<option value="${v.id}">Vehicle ${v.id} · ${v.status} · ${v.pending_count} pending</option>`).join('');
+    if (available.some(v => String(v.id) === previous)) select.value = previous;
+    else if (available.some(v => v.id === selected)) select.value = selected;
+    select.disabled = !live || !available.length;
+    $('break').disabled = select.disabled;
+    $('order-fields').disabled = !live;
+    $('event-count').textContent = `${data.events.length} event${data.events.length === 1 ? '' : 's'}`;
+    renderLog();
+
+    drawMap();
+    renderCard();
+    if (view === 'vehicle') renderVehicle();
+    if (view === 'compare') renderCompare();
   }
-  function vehicleDetail() {
-    const v=frame?.strategies[selected()].vehicles.find(v=>String(v.id)===$('vehicle-select').value);
-    $('vehicle-detail').textContent=v ? `Used capacity ${v.used_capacity}/${v.capacity} · ${v.served_count} delivered · ${fmt(v.distance_travelled)} travelled` : 'No healthy vehicle available.';
-    controls();
+
+  function renderLog() {
+    const name = $('strategy').value;
+    $('event-log').innerHTML = data.events.length ? data.events.map(e => {
+      const r = e.strategies[name];
+      const title = e.type === 'break_vehicle' ? `Vehicle ${e.payload.vehicle_id} taken offline` : `New order at (${e.payload.x}, ${e.payload.y})`;
+      return `<li><span class="ev-t">t=${fmt(e.time, 0)}</span>${title}<small>${STRATEGY_NAMES[name]}: unassigned ${r.before.dropped_orders} → ${r.after.dropped_orders} · distance ${r.delta.distance >= 0 ? '+' : ''}${fmt(r.delta.distance)} · ${r.status}</small></li>`;
+    }).join('') : '<li class="muted">No events yet.</li>';
   }
-  function updateMetrics() {
-    const strategy=selected(), k=frame?.kpis[strategy], event=frame?.latest_event;
-    $('kpi-heading').textContent=names[strategy];
-    $('delta-context').textContent=event ? `Deltas: immediately before → after latest event at t=${fmt(event.time,2)}` : 'Deltas appear after an event';
-    const cards=[['distance','Total distance',k?fmt(k.distance):'—'],['dropped_orders','Unassigned orders',k?k.dropped_orders:'—'],['late_deliveries','Late arrivals',k?k.late_deliveries:'—'],['solve_time_sec',event?'Latest recovery time':'Initial solve time',k?runtime(k.solve_time_sec):'—']];
-    $('cards').replaceChildren(...cards.map(([key,label,value])=>{
-      const card=document.createElement('div'); card.className='kpi-card';
-      const title=document.createElement('div'); title.className='kpi-label';title.textContent=label;
-      const number=document.createElement('div');number.className='kpi-value';number.textContent=value;
-      const detail=document.createElement('div');detail.className='kpi-detail';
-      const values=event?.strategies[strategy];
-      if(values) {const d=values.delta[key];detail.textContent=`${key==='solve_time_sec'?runtime(values.before[key]):fmt(values.before[key],key==='distance'?1:0)} → ${key==='solve_time_sec'?runtime(values.after[key]):fmt(values.after[key],key==='distance'?1:0)} (${d>=0?'+':''}${fmt(d,key==='solve_time_sec'?3:key==='distance'?1:0)}${key==='solve_time_sec'?' s':''})`; detail.classList.toggle('changed',Math.abs(d)>.00001);}
-      else detail.textContent=key==='distance' && k ? `${fmt(k.distance_travelled)} travelled · ${fmt(k.remaining_distance)} remaining` : 'No event comparison yet';
-      card.append(title,number,detail);return card;
-    }));
-    if(!frame) return;
-    $('comparison-body').replaceChildren(...Object.keys(names).map(name=>{
-      const value=frame.kpis[name], tr=document.createElement('tr');tr.classList.toggle('selected',name===strategy);
-      [names[name],`${value.served_orders}/${value.total_orders}`,fmt(value.distance),value.dropped_orders,value.late_deliveries,runtime(value.solve_time_sec)].forEach(text=>{const cell=document.createElement('td');cell.textContent=text;tr.append(cell);});return tr;
-    }));
-  }
-  function updateEvents() {
-    $('event-count').textContent=`${frame.events.length} EVENTS`;
-    $('event-log').replaceChildren();
-    if(!frame.events.length) {const li=document.createElement('li');li.className='muted';li.textContent='No disruptions in this view. Try a breakdown around t=90.';$('event-log').append(li);return;}
-    frame.events.slice().reverse().forEach(event=>{
-      const li=document.createElement('li'), time=document.createElement('span'), note=document.createElement('small');
-      time.className='event-time';time.textContent=`t=${fmt(event.time,2)}`;
-      li.append(time,document.createTextNode(event.type==='break_vehicle'?`Vehicle ${event.payload.vehicle_id} broke down`:`Order ${event.payload.id} added at (${fmt(event.payload.x)}, ${fmt(event.payload.y)})`));
-      note.textContent=Object.entries(event.strategies).map(([name,v])=>`${names[name]}: ${v.after.dropped_orders} unassigned${v.status==='SOLVE_FAILED'?' · solve failed':''}`).join(' / ');
-      li.append(note);$('event-log').append(li);
-    });
-  }
-  function lineTrace(parts, colour, past, vehicleId) {
-    const x=[],y=[];parts.forEach(([a,b])=>{x.push(a[0],b[0],null);y.push(a[1],b[1],null);});
-    return {x,y,type:'scatter',mode:'lines',line:{color:colour,width:past?1.5:2.3,dash:past?'dot':'solid'},opacity:past?.28:.82,name:`Vehicle ${vehicleId}`,hoverinfo:'name',showlegend:false};
-  }
+
   function drawMap() {
-    const render=++renderNumber;
-    renderQueue=renderQueue.catch(()=>{}).then(async()=>{
-      if(render!==renderNumber || !frame) return;
-      const data=frame.strategies[selected()], traces=[];
-      data.routes.forEach(route=>{const colour=palette[route.vehicle_id%palette.length];if(route.past.length)traces.push(lineTrace(route.past,colour,true,route.vehicle_id));if(route.future.length)traces.push(lineTrace(route.future,colour,false,route.vehicle_id));});
-      Object.entries(statusColours).forEach(([status,colour])=>{const customers=data.customers.filter(c=>c.status===status);if(!customers.length)return;
-        traces.push({x:customers.map(c=>c.x),y:customers.map(c=>c.y),type:'scatter',mode:'markers+text',text:customers.map(c=>String(c.id)),textposition:'top center',textfont:{size:10,color:'#c5d4e1'},marker:{size:status==='servicing'?12:9,color:colour,symbol:status==='unassigned'?'x':'circle',line:{width:1,color:'#0b1420'}},customdata:customers.map(c=>[c.id,c.status,c.demand,c.ready,c.due,c.vehicle_id??'unassigned']),hovertemplate:'Order %{customdata[0]} · %{customdata[1]}<br>Demand %{customdata[2]} · window %{customdata[3]}–%{customdata[4]}<br>Vehicle %{customdata[5]}<extra></extra>',showlegend:false});});
-      const moving=data.vehicles.filter(v=>v.status!=='idle'||v.x!==data.depot.x||v.y!==data.depot.y);
-      traces.push({x:moving.map(v=>v.x),y:moving.map(v=>v.y),mode:'markers',type:'scatter',marker:{size:15,color:moving.map(v=>v.status==='broken'?'#ff7f88':palette[v.id%palette.length]),symbol:moving.map(v=>v.status==='broken'?'x':'triangle-up'),line:{width:1.5,color:'#ecf6ff'}},customdata:moving.map(v=>[v.id,v.status,v.used_capacity,v.capacity]),hovertemplate:'Vehicle %{customdata[0]} · %{customdata[1]}<br>Used capacity %{customdata[2]}/%{customdata[3]}<extra></extra>',showlegend:false});
-      traces.push({x:[data.depot.x],y:[data.depot.y],mode:'markers+text',text:['DEPOT'],textposition:'bottom center',textfont:{size:10,color:'#fff'},marker:{size:14,symbol:'square',color:'#fff',line:{width:2,color:'#0b1420'}},hovertemplate:`Depot<br>Closes at ${frame.max_time}<br>${data.vehicles.filter(v=>v.status==='idle').length} idle vehicles<extra></extra>`,showlegend:false});
-      if(preview)traces.push({x:[preview.x],y:[preview.y],mode:'markers',marker:{symbol:'cross',size:18,color:'#fff'},hovertemplate:'New delivery location<extra></extra>',showlegend:false});
-      const all=[data.depot,...data.customers], xs=all.map(c=>c.x),ys=all.map(c=>c.y);
-      const layout={paper_bgcolor:'#121f2e',plot_bgcolor:'#101b29',font:{color:'#95a9bc',family:'Segoe UI, Arial'},margin:{l:44,r:25,t:20,b:38},hovermode:'closest',dragmode:placing?false:'pan',uirevision:frame.session_id,xaxis:{title:{text:'X',font:{size:10}},range:[Math.min(...xs)-8,Math.max(...xs)+8],gridcolor:'#223346',zeroline:false},yaxis:{title:{text:'Y',font:{size:10}},range:[Math.min(...ys)-8,Math.max(...ys)+8],gridcolor:'#223346',zeroline:false,scaleanchor:'x',scaleratio:1},showlegend:false};
-      await Plotly.react('map',traces,layout,{responsive:true,displaylogo:false,scrollZoom:true,modeBarButtonsToRemove:['select2d','lasso2d','toImage']});
-      plotReady=true;
-      $('map-subtitle').textContent=`${data.vehicles.filter(v=>v.status!=='idle'&&v.status!=='broken').length} active · ${data.vehicles.filter(v=>v.status==='broken').length} broken · ${frame.kpis[selected()].served_orders} delivered`;
-    });
-    return renderQueue;
+    const s = current();
+    const showRoutes = $('t-routes').checked, showAlerts = $('t-alerts').checked;
+    const traces = [];
+
+    if (showRoutes) {
+      s.routes.forEach(route => {
+        const isSel = route.vehicle_id === selected;
+        for (const [key, dash, width, colour] of [['past', 'dot', 1, '#4a4a48'], ['future', 'solid', isSel ? 3 : 1.5, isSel ? ACCENT : OLIVE]]) {
+          const x = [], y = [];
+          route[key].forEach(([a, b]) => { x.push(a[0], b[0], null); y.push(a[1], b[1], null); });
+          if (x.length) traces.push({x, y, mode: 'lines', type: 'scatter', line: {color: colour, width, dash}, hoverinfo: 'skip', showlegend: false});
+        }
+      });
+    }
+
+    for (const status of ['pending', 'servicing', 'served', 'unassigned']) {
+      const list = s.customers.filter(c => c.status === status);
+      if (!list.length) continue;
+      traces.push({x: list.map(c => c.x), y: list.map(c => c.y), type: 'scatter', mode: 'markers+text',
+        text: list.map(c => String(c.id)), textposition: 'top center', textfont: {size: 9, color: '#9e9f9f'},
+        marker: {size: status === 'servicing' ? 12 : 9, color: STATUS_COLOURS[status], symbol: status === 'unassigned' ? 'x' : 'circle', line: {width: 1, color: '#040404'}},
+        hovertemplate: list.map(c => `Order ${c.id} · ${status}<br>Demand ${c.demand} · window ${c.ready}–${c.due}<br>Vehicle ${c.vehicle_id ?? 'unassigned'}<extra></extra>`),
+        showlegend: false});
+    }
+
+    if (showAlerts) {
+      const late = s.customers.filter(c => c.status === 'unassigned');
+      if (late.length) traces.push({x: late.map(c => c.x), y: late.map(c => c.y), type: 'scatter', mode: 'markers', hoverinfo: 'skip',
+        marker: {size: 24, color: 'rgba(0,0,0,0)', line: {width: 1.5, color: '#e5604d'}}, showlegend: false});
+    }
+
+    const shown = s.vehicles.filter(v => filter === 'all' || group(v.status) === filter);
+    const sel = shown.find(v => v.id === selected);
+    if (sel) traces.push({x: [sel.x], y: [sel.y], type: 'scatter', mode: 'markers', hoverinfo: 'skip', showlegend: false,
+      marker: {size: 40, color: 'rgba(206,222,98,.22)'}});
+    traces.push({x: shown.map(v => v.x), y: shown.map(v => v.y), type: 'scatter', mode: 'markers', name: 'vehicles',
+      customdata: shown.map(v => [v.id, v.status, v.used_capacity, v.capacity]),
+      marker: {size: 14, symbol: shown.map(v => v.status === 'broken' ? 'x' : 'square'),
+        color: shown.map(v => v.status === 'broken' ? '#e5604d' : v.id === selected ? ACCENT : '#f4f4f4'), line: {width: 1.5, color: '#040404'}},
+      hovertemplate: 'Vehicle %{customdata[0]} · %{customdata[1]}<br>Load %{customdata[2]}/%{customdata[3]}<extra></extra>', showlegend: false});
+    traces.push({x: [s.depot.x], y: [s.depot.y], type: 'scatter', mode: 'markers+text', text: ['DEPOT'], textposition: 'bottom center',
+      textfont: {size: 9, color: '#f4f4f4'}, marker: {size: 15, symbol: 'diamond', color: '#f4f4f4', line: {width: 2, color: '#040404'}},
+      hovertemplate: `Depot · closes at ${data.max_time}<extra></extra>`, showlegend: false});
+
+    const xs = s.customers.map(c => c.x).concat(s.depot.x), ys = s.customers.map(c => c.y).concat(s.depot.y);
+    const axis = (title, lo, hi, extra = {}) => ({title: {text: title, font: {size: 9, color: '#5c5c5b'}}, range: [lo - 6, hi + 6], showgrid: false, zeroline: false, tickfont: {size: 9, color: '#5c5c5b'}, linecolor: '#2a2a29', ...extra});
+    const layout = {paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)', font: {color: '#9e9f9f', family: 'Segoe UI, Arial'},
+      margin: {l: 40, r: 20, t: 14, b: 34}, hovermode: 'closest', dragmode: placing ? false : 'pan', showlegend: false,
+      uirevision: `${data.session_id}-${viewRev}`,
+      xaxis: axis('X', Math.min(...xs), Math.max(...xs)), yaxis: axis('Y', Math.min(...ys), Math.max(...ys), {scaleanchor: 'x', scaleratio: 1})};
+    const gd = $('map');
+    Plotly.react(gd, traces, layout, {displayModeBar: false, scrollZoom: true, responsive: true});
+    if (!gd.dataset.bound) {
+      gd.dataset.bound = '1';
+      gd.on('plotly_click', ev => {
+        const p = ev.points[0];
+        if (p && p.data.name === 'vehicles') { selected = p.customdata[0]; render(); }
+      });
+      gd.addEventListener('click', ev => {
+        if (!placing) return;
+        const box = gd.getBoundingClientRect(), size = gd._fullLayout._size;
+        const x = gd._fullLayout.xaxis.p2d(ev.clientX - box.left - size.l), y = gd._fullLayout.yaxis.p2d(ev.clientY - box.top - size.t);
+        $('order-x').value = Math.round(x); $('order-y').value = Math.round(y);
+        $('order-ready').value = Math.round(t); $('order-due').value = data.max_time;
+        setPlacing(false);
+        say(`Location set to (${Math.round(x)}, ${Math.round(y)}). Review the form below the map and press Add order.`);
+      });
+    }
   }
+
+  function setPlacing(on) {
+    placing = on;
+    $('place').classList.toggle('active', on);
+    if (data) drawMap();
+  }
+
+  function renderCard() {
+    const card = $('vcard'), v = data && vehicleById(selected);
+    if (!v) { card.hidden = true; return; }
+    const route = current().routes.find(r => r.vehicle_id === selected);
+    const remaining = route ? routeLength(route, 'future') : 0;
+    const total = v.served_count + v.pending_count;
+    const done = total ? Math.round(v.served_count / total * 100) : 0;
+    const loadPct = v.capacity ? Math.round(v.used_capacity / v.capacity * 100) : 0;
+    const timePct = Math.min(100, Math.round(t / data.max_time * 100));
+    const orders = current().customers.filter(c => c.vehicle_id === selected && c.status !== 'served');
+    const urgent = orders.filter(c => c.due - t < 20 && c.due >= t).sort((a, b) => a.due - b.due)[0];
+    const alert = v.status === 'broken' ? ['bad', `Offline — remaining orders were reassigned to other vehicles.`]
+      : urgent ? ['', `<b>Window closing:</b> order ${urgent.id} is due at t=${urgent.due}.`]
+      : ['good', 'On schedule — no time windows at risk.'];
+    card.hidden = false;
+    card.innerHTML = `
+      <div class="vc-head"><div><h3>Vehicle ${v.id} ${pill(v.status, v.status === 'broken' ? 'bad' : 'ok')}</h3><span class="muted small">Capacity ${v.capacity} · ${v.served_count} served</span></div>
+        <button class="vc-x" id="vc-close" aria-label="Close">×</button></div>
+      <div class="vc-route"><div class="vc-row"><b>Depot → ${total} stop${total === 1 ? '' : 's'}</b><span>${done}% done</span></div>
+        <div class="bar"><span style="width:${done}%"></span></div>
+        <div class="vc-row"><span class="muted">${v.pending_count} pending</span><span>${fmt(remaining)} <span class="muted">distance remaining</span></span></div></div>
+      <div class="vc-gauges">
+        <div class="gauge"><span class="muted small">Load</span><b>${loadPct}%</b><div class="bar ${loadPct > 90 ? 'red' : ''}"><span style="width:${loadPct}%"></span></div><span class="small muted">${v.used_capacity}/${v.capacity}</span></div>
+        <div class="gauge"><span class="muted small">Day elapsed</span><b>${timePct}%</b><div class="bar"><span style="width:${timePct}%"></span></div><span class="small muted">t ${fmt(t, 0)}/${data.max_time}</span></div></div>
+      <div class="alert ${alert[0]}">${alert[1]}</div>
+      <div class="row-gap" style="margin-top:10px"><button class="btn ghost" id="vc-detail">Details</button>
+        <button class="btn danger" id="vc-break" ${v.status === 'broken' || t < data.committed_time ? 'disabled' : ''}>Take offline</button></div>`;
+    $('vc-close').onclick = () => { card.hidden = true; };
+    $('vc-detail').onclick = () => showView('vehicle');
+    $('vc-break').onclick = () => breakVehicle(selected);
+  }
+
+  function renderVehicle() {
+    const v = vehicleById(selected);
+    if (!v) return;
+    const s = current();
+    const orders = s.customers.filter(c => c.vehicle_id === selected).sort((a, b) => a.due - b.due);
+    const total = v.served_count + v.pending_count;
+    const done = total ? Math.round(v.served_count / total * 100) : 0;
+    const loadPct = v.capacity ? Math.round(v.used_capacity / v.capacity * 100) : 0;
+    const timePct = Math.min(100, Math.round(t / data.max_time * 100));
+    const route = s.routes.find(r => r.vehicle_id === selected);
+
+    $('crumb-v').textContent = `Vehicle ${v.id}`;
+    $('vd-name').textContent = `Vehicle ${v.id}`;
+    $('vd-status').textContent = v.status;
+    $('vd-status').className = `pill ${v.status === 'broken' ? 'bad' : 'ok'}`;
+    $('vd-sub').textContent = `${STRATEGY_NAMES[$('strategy').value]} · capacity ${v.capacity} · at (${fmt(v.x, 0)}, ${fmt(v.y, 0)})`;
+    $('vd-loaded').textContent = loadPct >= 100 ? 'Fully loaded' : `${loadPct}% loaded`;
+    $('vd-loaded').className = `pill ${loadPct >= 90 ? 'bad' : 'warn'}`;
+    $('vd-cap-text').textContent = `${v.used_capacity} / ${v.capacity}`;
+    $('vd-cap-pct').textContent = `${loadPct}%`;
+    $('vd-cap-bar').style.width = `${Math.min(100, loadPct)}%`;
+    $('vd-prog-text').textContent = `${v.served_count} / ${total} stops`;
+    $('vd-prog-pct').textContent = `${done}%`;
+    $('vd-prog-bar').style.width = `${done}%`;
+
+    $('tiles').innerHTML = orders.length ? orders.map(c => `<div class="tile ${c.status} ${c.id === selectedOrder ? 'sel' : ''}" data-id="${c.id}">
+        <span class="id">ORD-${c.id}</span><span>${pill(c.status, statusKind(c.status))} <span class="muted">${c.demand}</span></span></div>`).join('')
+      : '<div class="muted small" style="grid-column:1/-1;padding:14px">No orders assigned to this vehicle.</div>';
+    $('pk-sub').textContent = `${orders.length} orders · total demand ${orders.reduce((n, c) => n + c.demand, 0)}`;
+    $('pk-list').innerHTML = orders.map(c => `<div class="pk ${c.id === selectedOrder ? 'sel' : ''}" data-id="${c.id}">
+        <div class="pk-top"><b>ORD-${c.id}</b>${pill(c.status, statusKind(c.status))}</div>
+        <div class="pk-tags">${pill('demand ' + c.demand)}${pill('ready ' + c.ready)}${pill('due ' + c.due)}</div>
+        ${c.id === selectedOrder ? `<div class="pk-more"><span>Location<b>(${c.x}, ${c.y})</b></span><span>Window<b>${c.ready}–${c.due}</b></span><span>Assigned to<b>Vehicle ${c.vehicle_id}</b></span><span>Status<b>${c.status}</b></span></div>` : ''}</div>`).join('');
+    document.querySelectorAll('#tiles .tile, #pk-list .pk').forEach(el => el.onclick = () => { selectedOrder = Number(el.dataset.id); renderVehicle(); });
+
+    const setGauge = (id, pct, label) => { $(id).setAttribute('stroke-dasharray', `${Math.min(100, pct)} 100`); $(id + '-t').textContent = label; };
+    setGauge('g-load', loadPct, `${loadPct}%`);
+    setGauge('g-time', timePct, `${fmt(t, 0)} / ${data.max_time}`);
+    const urgent = orders.filter(c => c.status !== 'served' && c.due >= t && c.due - t < 20).sort((a, b) => a.due - b.due)[0];
+    const alert = $('vd-alert');
+    alert.className = 'alert' + (v.status === 'broken' ? ' bad' : urgent ? '' : ' good');
+    alert.innerHTML = v.status === 'broken' ? 'Offline: remaining orders were reassigned.'
+      : urgent ? `<b>Window closing:</b> ORD-${urgent.id} is due at t=${urgent.due}.` : 'On schedule: no time windows at risk.';
+    $('vd-stops').textContent = v.served_count;
+    $('vd-pending').textContent = v.pending_count;
+    $('vd-dist').textContent = fmt(v.distance_travelled);
+    $('vd-remain').textContent = fmt(route ? routeLength(route, 'future') : 0);
+    $('vd-break').disabled = v.status === 'broken' || t < data.committed_time;
+  }
+
+  function renderCompare() {
+    const names = Object.keys(data.kpis);
+    const rank = n => { const k = data.kpis[n]; return [k.dropped_orders, k.late_deliveries, k.distance]; };
+    const best = [...names].sort((a, b) => { const x = rank(a), y = rank(b); return x[0] - y[0] || x[1] - y[1] || x[2] - y[2]; })[0];
+    $('cards').innerHTML = names.map(n => { const k = data.kpis[n];
+      return `<div class="kpi-card ${n === best ? 'best' : ''}"><h3>${STRATEGY_NAMES[n]} ${n === best ? pill('best', 'ok') : ''}</h3><dl>
+        <dt>Delivered</dt><dd>${k.served_orders}/${k.total_orders}</dd><dt>Unassigned</dt><dd>${k.dropped_orders}</dd>
+        <dt>Late</dt><dd>${k.late_deliveries}</dd><dt>Distance</dt><dd>${fmt(k.distance)}</dd><dt>Recovery time</dt><dd>${fmt(k.solve_time_sec, 3)}s</dd></dl></div>`; }).join('');
+    $('comparison-body').innerHTML = names.map(n => { const k = data.kpis[n];
+      return `<tr class="${n === $('strategy').value ? 'selected' : ''}"><td>${STRATEGY_NAMES[n]}</td><td>${k.served_orders}/${k.total_orders}</td><td>${fmt(k.distance)}</td><td>${k.dropped_orders}</td><td>${k.late_deliveries}</td><td>${fmt(k.solve_time_sec, 3)}s</td></tr>`; }).join('');
+  }
+
+  // ---------- actions ----------
+  function showView(name) {
+    view = name;
+    ['ops', 'vehicle', 'compare'].forEach(v => { $('view-' + v).hidden = v !== name; });
+    document.querySelectorAll('.nav').forEach(b => b.classList.toggle('active', b.dataset.view === name));
+    if (data) { render(); if (name === 'ops') setTimeout(() => Plotly.Plots.resize($('map')), 0); }
+  }
+
+  async function post(path, body, label) {
+    busy(true, label);
+    try { return await api(path, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)}); }
+    finally { busy(false); }
+  }
+
   async function loadDataset() {
-    const reset=Boolean(frame?.event_count);
-    if(reset && !confirm('Loading a dataset will reset all events and strategy histories. Continue?'))return;
-    setBusy(true,'Solving initial routes…');message('Loading 25 customers and planning routes…');
-    try {const data=await api('/load',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({dataset:$('dataset').value,reset})});preview=null;await accept(data);$('order-ready').value=0;$('order-due').value=data.max_time;message(`${data.dataset} loaded. Press Play, or move the slider to t=90 and break an active vehicle.`);}
-    catch(error){message(error.message,true);}finally{setBusy(false);}
+    stop();
+    try {
+      const next = await post('/load', {dataset: $('dataset').value, reset: true}, 'Planning routes…');
+      selectedOrder = null; viewRev++;
+      say(`${next.dataset} loaded. Press Play, or move the slider to t=90 and take a vehicle offline.`);
+      await fetchState(0);
+    } catch (e) { say(e.message, true); }
   }
-  async function sendEvent(payload) {
-    if(!canEvent())return;
-    const saved=frame;setBusy(true);message('Applying the event to all three strategies…');
-    try {const data=await api('/event',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...payload,time:saved.time,session_id:saved.session_id,revision:saved.revision})});preview=null;await accept(data);$('order-ready').value=data.time;
-      const failed=Object.entries(data.latest_event.strategies).filter(([,v])=>v.status==='SOLVE_FAILED');
-      message(failed.length?`Event applied, but ${failed.map(([n])=>names[n]).join(', ')} could not re-plan. Previous healthy routes retained; inspect unassigned orders.`:'Event applied. Completed deliveries are locked; routes and strategy comparisons are updated.',Boolean(failed.length));
-    }catch(error){message(error.message,true);if(error.status===409){setBusy(false);await fetchFrame(targetTime);}}
-    finally{setBusy(false);$('placement-hint').textContent='Click to place, or enter x/y coordinates.';}
+
+  async function sendEvent(payload, okMessage) {
+    stop();
+    try {
+      const next = await post('/event', {...payload, time: t, session_id: data.session_id, revision: data.revision}, 'Re-planning all strategies…');
+      accept(next);
+      say(okMessage);
+    } catch (e) { say(e.message, true); }
   }
-  $('load').addEventListener('click',loadDataset);
-  $('vehicle-select').addEventListener('change',vehicleDetail);
-  $('strategy').addEventListener('change',()=>{updateVehicles();updateMetrics();drawMap();});
-  $('time-slider').addEventListener('input',()=>{pause();cancelRead();setTime($('time-slider').value);debounce=setTimeout(()=>fetchFrame(targetTime),65);});
-  $('jump-live').addEventListener('click',()=>{pause();setTime(frame.committed_time);fetchFrame(targetTime);});
-  $('play').addEventListener('click',()=>{
-    if(playing){pause();return;} if(!frame)return;
-    playing=true;$('play').textContent='Ⅱ Pause';$('play').setAttribute('aria-label','Pause simulation');
-    if(targetTime>=frame.max_time)setTime(0);
-    async function tick(){if(!playing)return;const next=Math.min(frame.max_time,targetTime+Number($('speed').value)*.25);setTime(next);const ok=await fetchFrame(next);if(!playing)return;if(!ok||next>=frame.max_time){pause();return;}timer=setTimeout(tick,250);}tick();
-  });
-  $('break').addEventListener('click',()=>sendEvent({event_type:'breakdown',vehicle_id:Number($('vehicle-select').value)}));
-  $('place').addEventListener('click',()=>{pause();placing=!placing;$('place').classList.toggle('active',placing);$('placement-hint').textContent=placing?'Click anywhere inside the plot to select the new delivery location.':'Click to place, or enter x/y coordinates.';drawMap();});
-  $('map').addEventListener('click',event=>{
-    if(!placing||!plotReady||!canEvent())return;
-    const graph=$('map'), bounds=graph.getBoundingClientRect(), axes=graph._fullLayout;
-    const px=event.clientX-bounds.left-axes.xaxis._offset, py=event.clientY-bounds.top-axes.yaxis._offset;
-    if(px<0||py<0||px>axes.xaxis._length||py>axes.yaxis._length)return;
-    const x=Number(axes.xaxis.p2d(px).toFixed(1)),y=Number(axes.yaxis.p2d(py).toFixed(1));
-    $('order-x').value=x;$('order-y').value=y;$('order-ready').value=frame.time;
-    preview={x,y};placing=false;$('place').classList.remove('active');$('placement-hint').textContent=`Selected (${x}, ${y}). Set demand and window, then add the order.`;drawMap();
-  });
-  $('order-form').addEventListener('submit',event=>{event.preventDefault();if(!canEvent()||!$('order-form').reportValidity())return;
-    const payload={event_type:'new_order',x:Number($('order-x').value),y:Number($('order-y').value),demand:Number($('order-demand').value),ready:Number($('order-ready').value),due:Number($('order-due').value),service:Number($('order-service').value)};
-    if(payload.ready>payload.due){message('The delivery window must open before it closes.',true);return;}sendEvent(payload);
-  });
-  updateMetrics();controls();
-  if(!window.Plotly){message('Plotly could not load. Check static/vendor/plotly.min.js and refresh.',true);$('load').disabled=true;return;}
-  // Reopening the page restores the shared session without silently resetting it.
-  api('/state?t=0').then(async data=>{if(data.committed_time>0)data=await api(`/state?t=${data.committed_time}`);await accept(data);$('order-ready').value=data.time;$('order-due').value=data.max_time;message('Restored the current local session. Use Load & solve to start again.');}).catch(error=>{if(error.status!==409)message(error.message,true);});
+  const breakVehicle = id => sendEvent({event_type: 'breakdown', vehicle_id: Number(id)}, `Vehicle ${id} taken offline at t=${fmt(t, 0)}. All three strategies re-planned.`);
+
+  function stop() { clearInterval(timer); timer = null; $('play').textContent = '▶ Play'; }
+  function togglePlay() {
+    if (timer) return stop();
+    if (t >= data.max_time) t = 0;
+    $('play').textContent = '⏸ Pause';
+    timer = setInterval(() => {
+      t = Math.min(data.max_time, t + Number($('speed').value));
+      $('time-slider').value = t;
+      fetchState(t);
+      if (t >= data.max_time) stop();
+    }, 250);
+  }
+
+  function zoom(factor) {
+    const gd = $('map'); if (!gd.layout) return;
+    const [x0, x1] = gd.layout.xaxis.range, [y0, y1] = gd.layout.yaxis.range;
+    const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2, hx = (x1 - x0) / 2 * factor, hy = (y1 - y0) / 2 * factor;
+    Plotly.relayout(gd, {'xaxis.range': [cx - hx, cx + hx], 'yaxis.range': [cy - hy, cy + hy]});
+  }
+
+  // ---------- wiring ----------
+  $('load').onclick = loadDataset;
+  $('play').onclick = togglePlay;
+  $('time-slider').oninput = e => { stop(); t = Number(e.target.value); $('time-value').textContent = t; fetchState(t); };
+  $('jump-live').onclick = () => fetchState(data.committed_time);
+  $('strategy').onchange = () => data && render();
+  $('t-routes').onchange = $('t-alerts').onchange = () => data && drawMap();
+  $('filters').onclick = e => {
+    const tab = e.target.closest('.tab'); if (!tab) return;
+    filter = tab.dataset.f;
+    document.querySelectorAll('.tab').forEach(b => b.classList.toggle('active', b === tab));
+    if (data) drawMap();
+  };
+  document.querySelectorAll('.nav').forEach(b => b.onclick = () => showView(b.dataset.view));
+  $('z-in').onclick = () => zoom(0.8);
+  $('z-out').onclick = () => zoom(1.25);
+  $('z-reset').onclick = () => { viewRev++; if (data) drawMap(); };
+  $('place').onclick = () => { if (data && t >= data.committed_time) { setPlacing(!placing); if (placing) say('Click the map to choose the new order location.'); } };
+  $('break').onclick = () => breakVehicle($('vehicle-select').value);
+  $('vd-break').onclick = () => breakVehicle(selected);
+  $('vd-map').onclick = () => showView('ops');
+  const step = d => { const ids = current().vehicles.map(v => v.id); selected = ids[(ids.indexOf(selected) + d + ids.length) % ids.length]; renderVehicle(); };
+  $('vd-prev').onclick = () => step(-1);
+  $('vd-next').onclick = () => step(1);
+  $('order-form').onsubmit = e => {
+    e.preventDefault();
+    sendEvent({event_type: 'new_order', x: Number($('order-x').value), y: Number($('order-y').value), demand: Number($('order-demand').value),
+      ready: Number($('order-ready').value), due: Number($('order-due').value), service: Number($('order-service').value)},
+      `New order added at t=${fmt(t, 0)}. All three strategies re-planned.`);
+  };
+
+  api('/state?t=0').then(async first => {
+    if (first.committed_time > 0) first = await api(`/state?t=${first.committed_time}`);
+    accept(first);
+    $('order-ready').value = Math.round(first.time); $('order-due').value = first.max_time;
+    say(`${first.dataset} is loaded. Move the slider or press Play.`);
+  }).catch(() => {});
 })();

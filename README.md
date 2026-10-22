@@ -267,8 +267,17 @@ times for the selected route order, with waiting at the destination.
 The objective is distance plus a large integer penalty per dropped customer. The
 penalty exceeds an upper bound on route distance, prioritizing service count over
 distance. Vehicle count is reported but is not minimized as a separate objective.
-The time-limited heuristic does not prove optimality. No published best-known
-comparison is claimed by this step.
+The time-limited heuristic does not prove optimality. `benchmark.py` compares
+25-customer solves with commonly cited best-known values (verify them against the
+SINTEF Solomon page before quoting):
+
+| Dataset | Ours | Best-known | Gap | Vehicles |
+|---|---|---|---|---|
+| C101 | 191.7 | 191.3 | +0.21% | 3 / 3 |
+| R101 | 619.0 | 617.1 | +0.31% | 8 / 8 |
+| RC101 | 462.3 | 461.1 | +0.26% | 4 / 4 |
+
+Run `python benchmark.py`; `tests/test_benchmark.py` checks no drops and a gap under 2%.
 
 ## Run locally
 

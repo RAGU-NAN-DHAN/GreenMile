@@ -30,7 +30,7 @@ def event_body(state, **payload):
 def test_static_files_are_served_independent_of_working_directory(client, monkeypatch, tmp_path):
     monkeypatch.chdir(tmp_path)
     assert client.get('/').status_code == 200
-    assert 'Fleet network' in client.get('/').text
+    assert 'Operations Dashboard' in client.get('/').text
     assert client.get('/static/app.js').status_code == 200
     assert client.get('/static/vendor/plotly.min.js').status_code == 200
 

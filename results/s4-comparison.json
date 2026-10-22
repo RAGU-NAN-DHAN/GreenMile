@@ -1397,7 +1397,7 @@
       "total_distance": 619.0,
       "last_solve": {
         "status": "ROUTING_SUCCESS",
-        "seconds": 2.042263399984222
+        "seconds": 2.0156759999808855
       }
     },
     "cheapest_insertion": {
@@ -2793,7 +2793,7 @@
       "total_distance": 619.0,
       "last_solve": {
         "status": "ROUTING_SUCCESS",
-        "seconds": 2.042263399984222
+        "seconds": 2.0156759999808855
       }
     },
     "replan": {
@@ -4189,7 +4189,7 @@
       "total_distance": 619.0,
       "last_solve": {
         "status": "ROUTING_SUCCESS",
-        "seconds": 2.042263399984222
+        "seconds": 2.0156759999808855
       }
     }
   },
@@ -4224,7 +4224,7 @@
             "served_orders": 9,
             "assigned_pending_orders": 13,
             "total_orders": 25,
-            "solve_time_sec": 2.1999585442245007e-06
+            "solve_time_sec": 2.7999631129205227e-06
           },
           "delta": {
             "distance": -51.39999999999998,
@@ -4236,7 +4236,7 @@
             "served_orders": 0,
             "assigned_pending_orders": -3,
             "total_orders": 0,
-            "solve_time_sec": 2.1999585442245007e-06
+            "solve_time_sec": 2.7999631129205227e-06
           },
           "status": "UNCHANGED"
         },
@@ -4263,7 +4263,7 @@
             "served_orders": 9,
             "assigned_pending_orders": 15,
             "total_orders": 25,
-            "solve_time_sec": 0.0017102999845519662
+            "solve_time_sec": 0.0021142999758012593
           },
           "delta": {
             "distance": 17.100000000000136,
@@ -4275,7 +4275,7 @@
             "served_orders": 0,
             "assigned_pending_orders": -1,
             "total_orders": 0,
-            "solve_time_sec": 0.0017102999845519662
+            "solve_time_sec": 0.0021142999758012593
           },
           "status": "INSERTION_COMPLETE"
         },
@@ -4293,28 +4293,28 @@
             "solve_time_sec": 0.0
           },
           "after": {
-            "distance": 626.1999999999999,
+            "distance": 623.1,
             "distance_travelled": 298.5,
-            "remaining_distance": 327.69999999999993,
+            "remaining_distance": 324.6,
             "late_deliveries": 0,
             "actual_late_deliveries": 0,
             "dropped_orders": 1,
             "served_orders": 9,
             "assigned_pending_orders": 15,
             "total_orders": 25,
-            "solve_time_sec": 2.005611000000499
+            "solve_time_sec": 2.003253200033214
           },
           "delta": {
-            "distance": 7.2000000000000455,
+            "distance": 4.100000000000136,
             "distance_travelled": 0.0,
-            "remaining_distance": 7.2000000000000455,
+            "remaining_distance": 4.100000000000136,
             "late_deliveries": 0,
             "actual_late_deliveries": 0,
             "dropped_orders": 1,
             "served_orders": 0,
             "assigned_pending_orders": -1,
             "total_orders": 0,
-            "solve_time_sec": 2.005611000000499
+            "solve_time_sec": 2.003253200033214
           },
           "status": "ROUTING_SUCCESS"
         }
@@ -5735,7 +5735,7 @@
             "total_distance": 619.0,
             "last_solve": {
               "status": "ROUTING_SUCCESS",
-              "seconds": 2.042263399984222
+              "seconds": 2.0156759999808855
             }
           },
           "after": {
@@ -7070,7 +7070,7 @@
                 20
               ],
               "strategy": "do_nothing",
-              "seconds": 2.1999585442245007e-06,
+              "seconds": 2.7999631129205227e-06,
               "recovery_limit_seconds": 2
             }
           }
@@ -8490,7 +8490,7 @@
             "total_distance": 619.0,
             "last_solve": {
               "status": "ROUTING_SUCCESS",
-              "seconds": 2.042263399984222
+              "seconds": 2.0156759999808855
             }
           },
           "after": {
@@ -9903,7 +9903,7 @@
                 9
               ],
               "strategy": "cheapest_insertion",
-              "seconds": 0.0017102999845519662,
+              "seconds": 0.0021142999758012593,
               "recovery_limit_seconds": 2
             }
           }
@@ -11323,7 +11323,7 @@
             "total_distance": 619.0,
             "last_solve": {
               "status": "ROUTING_SUCCESS",
-              "seconds": 2.042263399984222
+              "seconds": 2.0156759999808855
             }
           },
           "after": {
@@ -11411,50 +11411,17 @@
                   {
                     "kind": "travelling",
                     "start": 90.0,
-                    "end": 97.8,
+                    "end": 91.0,
                     "x1": 30.0,
                     "y1": 24.0,
-                    "x2": 25.0,
-                    "y2": 30.0,
-                    "distance": 7.799999999999997,
-                    "customer_id": 6
-                  },
-                  {
-                    "kind": "waiting",
-                    "start": 97.8,
-                    "end": 99.0,
-                    "x1": 25.0,
-                    "y1": 30.0,
-                    "x2": 25.0,
-                    "y2": 30.0,
-                    "distance": 0,
-                    "customer_id": 6
-                  },
-                  {
-                    "kind": "servicing",
-                    "start": 99.0,
-                    "end": 109.0,
-                    "x1": 25.0,
-                    "y1": 30.0,
-                    "x2": 25.0,
-                    "y2": 30.0,
-                    "distance": 0,
-                    "customer_id": 6
-                  },
-                  {
-                    "kind": "travelling",
-                    "start": 109.0,
-                    "end": 116.1,
-                    "x1": 25.0,
-                    "y1": 30.0,
                     "x2": 30.0,
                     "y2": 25.0,
-                    "distance": 7.099999999999994,
+                    "distance": 1.0,
                     "customer_id": 13
                   },
                   {
                     "kind": "waiting",
-                    "start": 116.1,
+                    "start": 91.0,
                     "end": 159.0,
                     "x1": 30.0,
                     "y1": 25.0,
@@ -11623,45 +11590,12 @@
                   {
                     "kind": "travelling",
                     "start": 159.0,
-                    "end": 169.0,
+                    "end": 184.0,
                     "x1": 55.0,
-                    "y1": 20.0,
-                    "x2": 65.0,
-                    "y2": 20.0,
-                    "distance": 10.0,
-                    "customer_id": 25
-                  },
-                  {
-                    "kind": "waiting",
-                    "start": 169.0,
-                    "end": 172.0,
-                    "x1": 65.0,
-                    "y1": 20.0,
-                    "x2": 65.0,
-                    "y2": 20.0,
-                    "distance": 0,
-                    "customer_id": 25
-                  },
-                  {
-                    "kind": "servicing",
-                    "start": 172.0,
-                    "end": 182.0,
-                    "x1": 65.0,
-                    "y1": 20.0,
-                    "x2": 65.0,
-                    "y2": 20.0,
-                    "distance": 0,
-                    "customer_id": 25
-                  },
-                  {
-                    "kind": "travelling",
-                    "start": 182.0,
-                    "end": 215.5,
-                    "x1": 65.0,
                     "y1": 20.0,
                     "x2": 35.0,
                     "y2": 35.0,
-                    "distance": 33.5,
+                    "distance": 25.0,
                     "customer_id": 0
                   }
                 ]
@@ -12139,45 +12073,34 @@
                   {
                     "kind": "travelling",
                     "start": 90.0,
-                    "end": 96.2,
+                    "end": 108.1,
                     "x1": 7.767857142857143,
                     "y1": 24.464285714285715,
-                    "x2": 5.0,
+                    "x2": 25.0,
                     "y2": 30.0,
-                    "distance": 6.200000000000003,
-                    "customer_id": 17
-                  },
-                  {
-                    "kind": "waiting",
-                    "start": 96.2,
-                    "end": 157.0,
-                    "x1": 5.0,
-                    "y1": 30.0,
-                    "x2": 5.0,
-                    "y2": 30.0,
-                    "distance": 0,
-                    "customer_id": 17
+                    "distance": 18.099999999999994,
+                    "customer_id": 6
                   },
                   {
                     "kind": "servicing",
-                    "start": 157.0,
-                    "end": 167.0,
-                    "x1": 5.0,
+                    "start": 108.1,
+                    "end": 118.1,
+                    "x1": 25.0,
                     "y1": 30.0,
-                    "x2": 5.0,
+                    "x2": 25.0,
                     "y2": 30.0,
                     "distance": 0,
-                    "customer_id": 17
+                    "customer_id": 6
                   },
                   {
                     "kind": "travelling",
-                    "start": 167.0,
-                    "end": 197.4,
-                    "x1": 5.0,
+                    "start": 118.1,
+                    "end": 129.3,
+                    "x1": 25.0,
                     "y1": 30.0,
                     "x2": 35.0,
                     "y2": 35.0,
-                    "distance": 30.400000000000006,
+                    "distance": 11.200000000000017,
                     "customer_id": 0
                   }
                 ]
@@ -12577,12 +12500,34 @@
                   {
                     "kind": "travelling",
                     "start": 163.0,
-                    "end": 193.0,
+                    "end": 178.0,
                     "x1": 65.0,
                     "y1": 35.0,
+                    "x2": 65.0,
+                    "y2": 20.0,
+                    "distance": 15.0,
+                    "customer_id": 25
+                  },
+                  {
+                    "kind": "servicing",
+                    "start": 178.0,
+                    "end": 188.0,
+                    "x1": 65.0,
+                    "y1": 20.0,
+                    "x2": 65.0,
+                    "y2": 20.0,
+                    "distance": 0,
+                    "customer_id": 25
+                  },
+                  {
+                    "kind": "travelling",
+                    "start": 188.0,
+                    "end": 221.5,
+                    "x1": 65.0,
+                    "y1": 20.0,
                     "x2": 35.0,
                     "y2": 35.0,
-                    "distance": 30.0,
+                    "distance": 33.5,
                     "customer_id": 0
                   }
                 ]
@@ -12701,12 +12646,45 @@
                   {
                     "kind": "travelling",
                     "start": 113.2,
-                    "end": 139.4,
+                    "end": 127.1,
                     "x1": 10.0,
                     "y1": 43.0,
+                    "x2": 5.0,
+                    "y2": 30.0,
+                    "distance": 13.899999999999991,
+                    "customer_id": 17
+                  },
+                  {
+                    "kind": "waiting",
+                    "start": 127.1,
+                    "end": 157.0,
+                    "x1": 5.0,
+                    "y1": 30.0,
+                    "x2": 5.0,
+                    "y2": 30.0,
+                    "distance": 0,
+                    "customer_id": 17
+                  },
+                  {
+                    "kind": "servicing",
+                    "start": 157.0,
+                    "end": 167.0,
+                    "x1": 5.0,
+                    "y1": 30.0,
+                    "x2": 5.0,
+                    "y2": 30.0,
+                    "distance": 0,
+                    "customer_id": 17
+                  },
+                  {
+                    "kind": "travelling",
+                    "start": 167.0,
+                    "end": 197.4,
+                    "x1": 5.0,
+                    "y1": 30.0,
                     "x2": 35.0,
                     "y2": 35.0,
-                    "distance": 26.200000000000003,
+                    "distance": 30.400000000000006,
                     "customer_id": 0
                   }
                 ]
@@ -12982,16 +12960,16 @@
               14
             ],
             "distance_travelled": 298.5,
-            "remaining_distance": 327.69999999999993,
-            "total_distance": 626.1999999999999,
+            "remaining_distance": 324.6,
+            "total_distance": 623.1,
             "last_solve": {
               "status": "ROUTING_SUCCESS",
-              "seconds": 2.005611000000499,
+              "seconds": 2.003253200033214,
               "search_limit_seconds": 2,
               "dropped_customer_ids": [
                 9
               ],
-              "solver_seconds": 2.003259100019932,
+              "solver_seconds": 2.0017778999754228,
               "strategy": "replan",
               "recovery_limit_seconds": 2
             }
@@ -13035,7 +13013,7 @@
             "served_orders": 11,
             "assigned_pending_orders": 11,
             "total_orders": 26,
-            "solve_time_sec": 3.2999669201672077e-06
+            "solve_time_sec": 2.900022082030773e-06
           },
           "delta": {
             "distance": 0.0,
@@ -13047,7 +13025,7 @@
             "served_orders": 0,
             "assigned_pending_orders": 0,
             "total_orders": 1,
-            "solve_time_sec": 3.2999669201672077e-06
+            "solve_time_sec": 2.900022082030773e-06
           },
           "status": "UNCHANGED"
         },
@@ -13074,7 +13052,7 @@
             "served_orders": 11,
             "assigned_pending_orders": 14,
             "total_orders": 26,
-            "solve_time_sec": 0.0013402000186033547
+            "solve_time_sec": 0.001034500019159168
           },
           "delta": {
             "distance": 1.0,
@@ -13086,15 +13064,15 @@
             "served_orders": 0,
             "assigned_pending_orders": 1,
             "total_orders": 1,
-            "solve_time_sec": 0.0013402000186033547
+            "solve_time_sec": 0.001034500019159168
           },
           "status": "INSERTION_COMPLETE"
         },
         "replan": {
           "before": {
-            "distance": 626.1999999999999,
-            "distance_travelled": 318.40000000000003,
-            "remaining_distance": 307.7999999999999,
+            "distance": 623.1,
+            "distance_travelled": 314.40000000000003,
+            "remaining_distance": 308.7,
             "late_deliveries": 0,
             "actual_late_deliveries": 0,
             "dropped_orders": 1,
@@ -13104,16 +13082,16 @@
             "solve_time_sec": 0.0
           },
           "after": {
-            "distance": 630.1999999999999,
-            "distance_travelled": 318.40000000000003,
-            "remaining_distance": 311.7999999999999,
+            "distance": 627.1,
+            "distance_travelled": 314.40000000000003,
+            "remaining_distance": 312.7,
             "late_deliveries": 0,
             "actual_late_deliveries": 0,
             "dropped_orders": 1,
             "served_orders": 11,
             "assigned_pending_orders": 14,
             "total_orders": 26,
-            "solve_time_sec": 2.0108721000142395
+            "solve_time_sec": 2.008002899994608
           },
           "delta": {
             "distance": 4.0,
@@ -13125,7 +13103,7 @@
             "served_orders": 0,
             "assigned_pending_orders": 1,
             "total_orders": 1,
-            "solve_time_sec": 2.0108721000142395
+            "solve_time_sec": 2.008002899994608
           },
           "status": "ROUTING_SUCCESS"
         }
@@ -14479,7 +14457,7 @@
                 20
               ],
               "strategy": "do_nothing",
-              "seconds": 2.1999585442245007e-06,
+              "seconds": 2.7999631129205227e-06,
               "recovery_limit_seconds": 2
             }
           },
@@ -15830,7 +15808,7 @@
                 26
               ],
               "strategy": "do_nothing",
-              "seconds": 3.2999669201672077e-06,
+              "seconds": 2.900022082030773e-06,
               "recovery_limit_seconds": 2
             }
           }
@@ -17261,7 +17239,7 @@
                 9
               ],
               "strategy": "cheapest_insertion",
-              "seconds": 0.0017102999845519662,
+              "seconds": 0.0021142999758012593,
               "recovery_limit_seconds": 2
             }
           },
@@ -18720,7 +18698,7 @@
                 9
               ],
               "strategy": "cheapest_insertion",
-              "seconds": 0.0013402000186033547,
+              "seconds": 0.001034500019159168,
               "recovery_limit_seconds": 2
             }
           }
@@ -18744,15 +18722,15 @@
               "0": {
                 "vehicle_id": 0,
                 "capacity": 200,
-                "x": 26.794871794871792,
-                "y": 27.846153846153847,
-                "status": "travelling",
+                "x": 30.0,
+                "y": 25.0,
+                "status": "waiting",
                 "served": [
                   14,
                   15
                 ],
                 "used_capacity": 28,
-                "distance_travelled": 71.8,
+                "distance_travelled": 67.8,
                 "segments": [
                   {
                     "kind": "travelling",
@@ -18823,50 +18801,17 @@
                   {
                     "kind": "travelling",
                     "start": 90.0,
-                    "end": 97.8,
+                    "end": 91.0,
                     "x1": 30.0,
                     "y1": 24.0,
-                    "x2": 25.0,
-                    "y2": 30.0,
-                    "distance": 7.799999999999997,
-                    "customer_id": 6
-                  },
-                  {
-                    "kind": "waiting",
-                    "start": 97.8,
-                    "end": 99.0,
-                    "x1": 25.0,
-                    "y1": 30.0,
-                    "x2": 25.0,
-                    "y2": 30.0,
-                    "distance": 0,
-                    "customer_id": 6
-                  },
-                  {
-                    "kind": "servicing",
-                    "start": 99.0,
-                    "end": 109.0,
-                    "x1": 25.0,
-                    "y1": 30.0,
-                    "x2": 25.0,
-                    "y2": 30.0,
-                    "distance": 0,
-                    "customer_id": 6
-                  },
-                  {
-                    "kind": "travelling",
-                    "start": 109.0,
-                    "end": 116.1,
-                    "x1": 25.0,
-                    "y1": 30.0,
                     "x2": 30.0,
                     "y2": 25.0,
-                    "distance": 7.099999999999994,
+                    "distance": 1.0,
                     "customer_id": 13
                   },
                   {
                     "kind": "waiting",
-                    "start": 116.1,
+                    "start": 91.0,
                     "end": 159.0,
                     "x1": 30.0,
                     "y1": 25.0,
@@ -19035,45 +18980,12 @@
                   {
                     "kind": "travelling",
                     "start": 159.0,
-                    "end": 169.0,
+                    "end": 184.0,
                     "x1": 55.0,
-                    "y1": 20.0,
-                    "x2": 65.0,
-                    "y2": 20.0,
-                    "distance": 10.0,
-                    "customer_id": 25
-                  },
-                  {
-                    "kind": "waiting",
-                    "start": 169.0,
-                    "end": 172.0,
-                    "x1": 65.0,
-                    "y1": 20.0,
-                    "x2": 65.0,
-                    "y2": 20.0,
-                    "distance": 0,
-                    "customer_id": 25
-                  },
-                  {
-                    "kind": "servicing",
-                    "start": 172.0,
-                    "end": 182.0,
-                    "x1": 65.0,
-                    "y1": 20.0,
-                    "x2": 65.0,
-                    "y2": 20.0,
-                    "distance": 0,
-                    "customer_id": 25
-                  },
-                  {
-                    "kind": "travelling",
-                    "start": 182.0,
-                    "end": 215.5,
-                    "x1": 65.0,
                     "y1": 20.0,
                     "x2": 35.0,
                     "y2": 35.0,
-                    "distance": 33.5,
+                    "distance": 25.0,
                     "customer_id": 0
                   }
                 ]
@@ -19461,8 +19373,8 @@
               "17": {
                 "vehicle_id": 17,
                 "capacity": 200,
-                "x": 5.5357142857142865,
-                "y": 28.928571428571427,
+                "x": 12.528117600631415,
+                "y": 25.993488555643253,
                 "status": "travelling",
                 "served": [
                   5,
@@ -19551,45 +19463,34 @@
                   {
                     "kind": "travelling",
                     "start": 90.0,
-                    "end": 96.2,
+                    "end": 108.1,
                     "x1": 7.767857142857143,
                     "y1": 24.464285714285715,
-                    "x2": 5.0,
+                    "x2": 25.0,
                     "y2": 30.0,
-                    "distance": 6.200000000000003,
-                    "customer_id": 17
-                  },
-                  {
-                    "kind": "waiting",
-                    "start": 96.2,
-                    "end": 157.0,
-                    "x1": 5.0,
-                    "y1": 30.0,
-                    "x2": 5.0,
-                    "y2": 30.0,
-                    "distance": 0,
-                    "customer_id": 17
+                    "distance": 18.099999999999994,
+                    "customer_id": 6
                   },
                   {
                     "kind": "servicing",
-                    "start": 157.0,
-                    "end": 167.0,
-                    "x1": 5.0,
+                    "start": 108.1,
+                    "end": 118.1,
+                    "x1": 25.0,
                     "y1": 30.0,
-                    "x2": 5.0,
+                    "x2": 25.0,
                     "y2": 30.0,
                     "distance": 0,
-                    "customer_id": 17
+                    "customer_id": 6
                   },
                   {
                     "kind": "travelling",
-                    "start": 167.0,
-                    "end": 197.4,
-                    "x1": 5.0,
+                    "start": 118.1,
+                    "end": 129.3,
+                    "x1": 25.0,
                     "y1": 30.0,
                     "x2": 35.0,
                     "y2": 35.0,
-                    "distance": 30.400000000000006,
+                    "distance": 11.200000000000017,
                     "customer_id": 0
                   }
                 ]
@@ -19990,12 +19891,34 @@
                   {
                     "kind": "travelling",
                     "start": 163.0,
-                    "end": 193.0,
+                    "end": 178.0,
                     "x1": 65.0,
                     "y1": 35.0,
+                    "x2": 65.0,
+                    "y2": 20.0,
+                    "distance": 15.0,
+                    "customer_id": 25
+                  },
+                  {
+                    "kind": "servicing",
+                    "start": 178.0,
+                    "end": 188.0,
+                    "x1": 65.0,
+                    "y1": 20.0,
+                    "x2": 65.0,
+                    "y2": 20.0,
+                    "distance": 0,
+                    "customer_id": 25
+                  },
+                  {
+                    "kind": "travelling",
+                    "start": 188.0,
+                    "end": 221.5,
+                    "x1": 65.0,
+                    "y1": 20.0,
                     "x2": 35.0,
                     "y2": 35.0,
-                    "distance": 30.0,
+                    "distance": 33.5,
                     "customer_id": 0
                   }
                 ]
@@ -20116,12 +20039,45 @@
                   {
                     "kind": "travelling",
                     "start": 113.2,
-                    "end": 139.4,
+                    "end": 127.1,
                     "x1": 10.0,
                     "y1": 43.0,
+                    "x2": 5.0,
+                    "y2": 30.0,
+                    "distance": 13.899999999999991,
+                    "customer_id": 17
+                  },
+                  {
+                    "kind": "waiting",
+                    "start": 127.1,
+                    "end": 157.0,
+                    "x1": 5.0,
+                    "y1": 30.0,
+                    "x2": 5.0,
+                    "y2": 30.0,
+                    "distance": 0,
+                    "customer_id": 17
+                  },
+                  {
+                    "kind": "servicing",
+                    "start": 157.0,
+                    "end": 167.0,
+                    "x1": 5.0,
+                    "y1": 30.0,
+                    "x2": 5.0,
+                    "y2": 30.0,
+                    "distance": 0,
+                    "customer_id": 17
+                  },
+                  {
+                    "kind": "travelling",
+                    "start": 167.0,
+                    "end": 197.4,
+                    "x1": 5.0,
+                    "y1": 30.0,
                     "x2": 35.0,
                     "y2": 35.0,
-                    "distance": 26.200000000000003,
+                    "distance": 30.400000000000006,
                     "customer_id": 0
                   }
                 ]
@@ -20396,17 +20352,17 @@
             "broken_vehicles": [
               14
             ],
-            "distance_travelled": 318.4,
-            "remaining_distance": 307.79999999999995,
-            "total_distance": 626.1999999999999,
+            "distance_travelled": 314.4,
+            "remaining_distance": 308.70000000000005,
+            "total_distance": 623.1,
             "last_solve": {
               "status": "ROUTING_SUCCESS",
-              "seconds": 2.005611000000499,
+              "seconds": 2.003253200033214,
               "search_limit_seconds": 2,
               "dropped_customer_ids": [
                 9
               ],
-              "solver_seconds": 2.003259100019932,
+              "solver_seconds": 2.0017778999754228,
               "strategy": "replan",
               "recovery_limit_seconds": 2
             }
@@ -20417,15 +20373,15 @@
               "0": {
                 "vehicle_id": 0,
                 "capacity": 200,
-                "x": 26.794871794871792,
-                "y": 27.846153846153847,
-                "status": "travelling",
+                "x": 30.0,
+                "y": 25.0,
+                "status": "waiting",
                 "served": [
                   14,
                   15
                 ],
                 "used_capacity": 28,
-                "distance_travelled": 71.8,
+                "distance_travelled": 67.8,
                 "segments": [
                   {
                     "kind": "travelling",
@@ -20496,61 +20452,39 @@
                   {
                     "kind": "travelling",
                     "start": 90.0,
-                    "end": 95.0,
+                    "end": 91.0,
                     "x1": 30.0,
                     "y1": 24.0,
-                    "x2": 26.794871794871792,
-                    "y2": 27.846153846153847,
-                    "distance": 5.0,
-                    "customer_id": 6
-                  },
-                  {
-                    "kind": "travelling",
-                    "start": 95.0,
-                    "end": 97.8,
-                    "x1": 26.794871794871792,
-                    "y1": 27.846153846153847,
-                    "x2": 25.0,
-                    "y2": 30.0,
-                    "distance": 2.799999999999997,
-                    "customer_id": 6
-                  },
-                  {
-                    "kind": "waiting",
-                    "start": 97.8,
-                    "end": 99.0,
-                    "x1": 25.0,
-                    "y1": 30.0,
-                    "x2": 25.0,
-                    "y2": 30.0,
-                    "distance": 0,
-                    "customer_id": 6
-                  },
-                  {
-                    "kind": "servicing",
-                    "start": 99.0,
-                    "end": 109.0,
-                    "x1": 25.0,
-                    "y1": 30.0,
-                    "x2": 25.0,
-                    "y2": 30.0,
-                    "distance": 0,
-                    "customer_id": 6
-                  },
-                  {
-                    "kind": "travelling",
-                    "start": 109.0,
-                    "end": 116.1,
-                    "x1": 25.0,
-                    "y1": 30.0,
                     "x2": 30.0,
                     "y2": 25.0,
-                    "distance": 7.099999999999994,
+                    "distance": 1.0,
                     "customer_id": 13
                   },
                   {
                     "kind": "waiting",
-                    "start": 116.1,
+                    "start": 91.0,
+                    "end": 95.0,
+                    "x1": 30.0,
+                    "y1": 25.0,
+                    "x2": 30.0,
+                    "y2": 25.0,
+                    "distance": 0.0,
+                    "customer_id": 13
+                  },
+                  {
+                    "kind": "travelling",
+                    "start": 95.0,
+                    "end": 95.0,
+                    "x1": 30.0,
+                    "y1": 25.0,
+                    "x2": 30.0,
+                    "y2": 25.0,
+                    "distance": 0.0,
+                    "customer_id": 13
+                  },
+                  {
+                    "kind": "waiting",
+                    "start": 95.0,
                     "end": 159.0,
                     "x1": 30.0,
                     "y1": 25.0,
@@ -21288,8 +21222,8 @@
               "17": {
                 "vehicle_id": 17,
                 "capacity": 200,
-                "x": 5.5357142857142865,
-                "y": 28.928571428571427,
+                "x": 12.528117600631415,
+                "y": 25.993488555643253,
                 "status": "travelling",
                 "served": [
                   5,
@@ -21381,53 +21315,42 @@
                     "end": 95.0,
                     "x1": 7.767857142857143,
                     "y1": 24.464285714285715,
-                    "x2": 5.5357142857142865,
-                    "y2": 28.928571428571427,
+                    "x2": 12.528117600631415,
+                    "y2": 25.993488555643253,
                     "distance": 5.0,
-                    "customer_id": 17
+                    "customer_id": 6
                   },
                   {
                     "kind": "travelling",
                     "start": 95.0,
-                    "end": 96.2,
-                    "x1": 5.5357142857142865,
-                    "y1": 28.928571428571427,
-                    "x2": 5.0,
+                    "end": 108.1,
+                    "x1": 12.528117600631415,
+                    "y1": 25.993488555643253,
+                    "x2": 25.0,
                     "y2": 30.0,
-                    "distance": 1.2000000000000028,
-                    "customer_id": 17
-                  },
-                  {
-                    "kind": "waiting",
-                    "start": 96.2,
-                    "end": 157.0,
-                    "x1": 5.0,
-                    "y1": 30.0,
-                    "x2": 5.0,
-                    "y2": 30.0,
-                    "distance": 0,
-                    "customer_id": 17
+                    "distance": 13.099999999999994,
+                    "customer_id": 6
                   },
                   {
                     "kind": "servicing",
-                    "start": 157.0,
-                    "end": 167.0,
-                    "x1": 5.0,
+                    "start": 108.1,
+                    "end": 118.1,
+                    "x1": 25.0,
                     "y1": 30.0,
-                    "x2": 5.0,
+                    "x2": 25.0,
                     "y2": 30.0,
                     "distance": 0,
-                    "customer_id": 17
+                    "customer_id": 6
                   },
                   {
                     "kind": "travelling",
-                    "start": 167.0,
-                    "end": 197.4,
-                    "x1": 5.0,
+                    "start": 118.1,
+                    "end": 129.3,
+                    "x1": 25.0,
                     "y1": 30.0,
                     "x2": 35.0,
                     "y2": 35.0,
-                    "distance": 30.400000000000006,
+                    "distance": 11.200000000000017,
                     "customer_id": 0
                   }
                 ]
@@ -22064,12 +21987,45 @@
                   {
                     "kind": "travelling",
                     "start": 113.2,
-                    "end": 139.4,
+                    "end": 127.1,
                     "x1": 10.0,
                     "y1": 43.0,
+                    "x2": 5.0,
+                    "y2": 30.0,
+                    "distance": 13.899999999999991,
+                    "customer_id": 17
+                  },
+                  {
+                    "kind": "waiting",
+                    "start": 127.1,
+                    "end": 157.0,
+                    "x1": 5.0,
+                    "y1": 30.0,
+                    "x2": 5.0,
+                    "y2": 30.0,
+                    "distance": 0,
+                    "customer_id": 17
+                  },
+                  {
+                    "kind": "servicing",
+                    "start": 157.0,
+                    "end": 167.0,
+                    "x1": 5.0,
+                    "y1": 30.0,
+                    "x2": 5.0,
+                    "y2": 30.0,
+                    "distance": 0,
+                    "customer_id": 17
+                  },
+                  {
+                    "kind": "travelling",
+                    "start": 167.0,
+                    "end": 197.4,
+                    "x1": 5.0,
+                    "y1": 30.0,
                     "x2": 35.0,
                     "y2": 35.0,
-                    "distance": 26.200000000000003,
+                    "distance": 30.400000000000006,
                     "customer_id": 0
                   }
                 ]
@@ -22354,17 +22310,17 @@
             "broken_vehicles": [
               14
             ],
-            "distance_travelled": 318.4,
-            "remaining_distance": 311.79999999999995,
-            "total_distance": 630.1999999999999,
+            "distance_travelled": 314.4,
+            "remaining_distance": 312.70000000000005,
+            "total_distance": 627.1,
             "last_solve": {
               "status": "ROUTING_SUCCESS",
-              "seconds": 2.0108721000142395,
+              "seconds": 2.008002899994608,
               "search_limit_seconds": 2,
               "dropped_customer_ids": [
                 9
               ],
-              "solver_seconds": 2.0084135999786668,
+              "solver_seconds": 2.006324300018605,
               "strategy": "replan",
               "recovery_limit_seconds": 2
             }
@@ -22384,7 +22340,7 @@
       "served_orders": 22,
       "assigned_pending_orders": 0,
       "total_orders": 26,
-      "solve_time_sec": 3.2999669201672077e-06
+      "solve_time_sec": 2.900022082030773e-06
     },
     "cheapest_insertion": {
       "distance": 637.1,
@@ -22396,11 +22352,11 @@
       "served_orders": 25,
       "assigned_pending_orders": 0,
       "total_orders": 26,
-      "solve_time_sec": 0.0013402000186033547
+      "solve_time_sec": 0.001034500019159168
     },
     "replan": {
-      "distance": 630.1999999999999,
-      "distance_travelled": 630.1999999999999,
+      "distance": 627.1,
+      "distance_travelled": 627.1,
       "remaining_distance": 0.0,
       "late_deliveries": 0,
       "actual_late_deliveries": 0,
@@ -22408,7 +22364,7 @@
       "served_orders": 25,
       "assigned_pending_orders": 0,
       "total_orders": 26,
-      "solve_time_sec": 2.0108721000142395
+      "solve_time_sec": 2.008002899994608
     }
   },
   "final_snapshots": {
@@ -23771,7 +23727,7 @@
           26
         ],
         "strategy": "do_nothing",
-        "seconds": 3.2999669201672077e-06,
+        "seconds": 2.900022082030773e-06,
         "recovery_limit_seconds": 2
       }
     },
@@ -25246,7 +25202,7 @@
           9
         ],
         "strategy": "cheapest_insertion",
-        "seconds": 0.0013402000186033547,
+        "seconds": 0.001034500019159168,
         "recovery_limit_seconds": 2
       }
     },
@@ -25262,11 +25218,10 @@
           "served": [
             14,
             15,
-            6,
             13
           ],
-          "used_capacity": 54,
-          "distance_travelled": 92.89999999999998,
+          "used_capacity": 51,
+          "distance_travelled": 78.99999999999999,
           "segments": [
             {
               "kind": "travelling",
@@ -25337,61 +25292,39 @@
             {
               "kind": "travelling",
               "start": 90.0,
-              "end": 95.0,
+              "end": 91.0,
               "x1": 30.0,
               "y1": 24.0,
-              "x2": 26.794871794871792,
-              "y2": 27.846153846153847,
-              "distance": 5.0,
-              "customer_id": 6
-            },
-            {
-              "kind": "travelling",
-              "start": 95.0,
-              "end": 97.8,
-              "x1": 26.794871794871792,
-              "y1": 27.846153846153847,
-              "x2": 25.0,
-              "y2": 30.0,
-              "distance": 2.799999999999997,
-              "customer_id": 6
-            },
-            {
-              "kind": "waiting",
-              "start": 97.8,
-              "end": 99.0,
-              "x1": 25.0,
-              "y1": 30.0,
-              "x2": 25.0,
-              "y2": 30.0,
-              "distance": 0,
-              "customer_id": 6
-            },
-            {
-              "kind": "servicing",
-              "start": 99.0,
-              "end": 109.0,
-              "x1": 25.0,
-              "y1": 30.0,
-              "x2": 25.0,
-              "y2": 30.0,
-              "distance": 0,
-              "customer_id": 6
-            },
-            {
-              "kind": "travelling",
-              "start": 109.0,
-              "end": 116.1,
-              "x1": 25.0,
-              "y1": 30.0,
               "x2": 30.0,
               "y2": 25.0,
-              "distance": 7.099999999999994,
+              "distance": 1.0,
               "customer_id": 13
             },
             {
               "kind": "waiting",
-              "start": 116.1,
+              "start": 91.0,
+              "end": 95.0,
+              "x1": 30.0,
+              "y1": 25.0,
+              "x2": 30.0,
+              "y2": 25.0,
+              "distance": 0.0,
+              "customer_id": 13
+            },
+            {
+              "kind": "travelling",
+              "start": 95.0,
+              "end": 95.0,
+              "x1": 30.0,
+              "y1": 25.0,
+              "x2": 30.0,
+              "y2": 25.0,
+              "distance": 0.0,
+              "customer_id": 13
+            },
+            {
+              "kind": "waiting",
+              "start": 95.0,
               "end": 159.0,
               "x1": 30.0,
               "y1": 25.0,
@@ -26137,10 +26070,10 @@
           "served": [
             5,
             16,
-            17
+            6
           ],
-          "used_capacity": 47,
-          "distance_travelled": 73.4,
+          "used_capacity": 48,
+          "distance_travelled": 66.10000000000002,
           "segments": [
             {
               "kind": "travelling",
@@ -26225,53 +26158,42 @@
               "end": 95.0,
               "x1": 7.767857142857143,
               "y1": 24.464285714285715,
-              "x2": 5.5357142857142865,
-              "y2": 28.928571428571427,
+              "x2": 12.528117600631415,
+              "y2": 25.993488555643253,
               "distance": 5.0,
-              "customer_id": 17
+              "customer_id": 6
             },
             {
               "kind": "travelling",
               "start": 95.0,
-              "end": 96.2,
-              "x1": 5.5357142857142865,
-              "y1": 28.928571428571427,
-              "x2": 5.0,
+              "end": 108.1,
+              "x1": 12.528117600631415,
+              "y1": 25.993488555643253,
+              "x2": 25.0,
               "y2": 30.0,
-              "distance": 1.2000000000000028,
-              "customer_id": 17
-            },
-            {
-              "kind": "waiting",
-              "start": 96.2,
-              "end": 157.0,
-              "x1": 5.0,
-              "y1": 30.0,
-              "x2": 5.0,
-              "y2": 30.0,
-              "distance": 0,
-              "customer_id": 17
+              "distance": 13.099999999999994,
+              "customer_id": 6
             },
             {
               "kind": "servicing",
-              "start": 157.0,
-              "end": 167.0,
-              "x1": 5.0,
+              "start": 108.1,
+              "end": 118.1,
+              "x1": 25.0,
               "y1": 30.0,
-              "x2": 5.0,
+              "x2": 25.0,
               "y2": 30.0,
               "distance": 0,
-              "customer_id": 17
+              "customer_id": 6
             },
             {
               "kind": "travelling",
-              "start": 167.0,
-              "end": 197.4,
-              "x1": 5.0,
+              "start": 118.1,
+              "end": 129.3,
+              "x1": 25.0,
               "y1": 30.0,
               "x2": 35.0,
               "y2": 35.0,
-              "distance": 30.400000000000006,
+              "distance": 11.200000000000017,
               "customer_id": 0
             }
           ]
@@ -26844,10 +26766,11 @@
           "status": "idle",
           "served": [
             7,
-            8
+            8,
+            17
           ],
-          "used_capacity": 14,
-          "distance_travelled": 59.60000000000001,
+          "used_capacity": 16,
+          "distance_travelled": 77.7,
           "segments": [
             {
               "kind": "travelling",
@@ -26918,12 +26841,45 @@
             {
               "kind": "travelling",
               "start": 113.2,
-              "end": 139.4,
+              "end": 127.1,
               "x1": 10.0,
               "y1": 43.0,
+              "x2": 5.0,
+              "y2": 30.0,
+              "distance": 13.899999999999991,
+              "customer_id": 17
+            },
+            {
+              "kind": "waiting",
+              "start": 127.1,
+              "end": 157.0,
+              "x1": 5.0,
+              "y1": 30.0,
+              "x2": 5.0,
+              "y2": 30.0,
+              "distance": 0,
+              "customer_id": 17
+            },
+            {
+              "kind": "servicing",
+              "start": 157.0,
+              "end": 167.0,
+              "x1": 5.0,
+              "y1": 30.0,
+              "x2": 5.0,
+              "y2": 30.0,
+              "distance": 0,
+              "customer_id": 17
+            },
+            {
+              "kind": "travelling",
+              "start": 167.0,
+              "end": 197.4,
+              "x1": 5.0,
+              "y1": 30.0,
               "x2": 35.0,
               "y2": 35.0,
-              "distance": 26.200000000000003,
+              "distance": 30.400000000000006,
               "customer_id": 0
             }
           ]
@@ -27208,17 +27164,17 @@
       "broken_vehicles": [
         14
       ],
-      "distance_travelled": 630.1999999999999,
+      "distance_travelled": 627.1,
       "remaining_distance": 0.0,
-      "total_distance": 630.1999999999999,
+      "total_distance": 627.1,
       "last_solve": {
         "status": "ROUTING_SUCCESS",
-        "seconds": 2.0108721000142395,
+        "seconds": 2.008002899994608,
         "search_limit_seconds": 2,
         "dropped_customer_ids": [
           9
         ],
-        "solver_seconds": 2.0084135999786668,
+        "solver_seconds": 2.006324300018605,
         "strategy": "replan",
         "recovery_limit_seconds": 2
       }

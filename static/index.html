@@ -2,38 +2,159 @@
 <html lang="en">
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Last Mile — Live dispatch</title>
+  <title>GreenMile — Operations</title>
   <link rel="stylesheet" href="/static/style.css">
   <script defer src="/static/vendor/plotly.min.js"></script>
   <script defer src="/static/app.js"></script>
 </head>
 <body>
-<header class="topbar">
-  <a class="brand" href="/" aria-label="Last Mile home"><span class="brand-mark">L<span>↗</span></span><span>LAST MILE<small>LIVE DISPATCH LAB</small></span></a>
-  <div class="top-meta"><span class="dot"></span> Local simulation <span class="divider">/</span> Solomon VRPTW</div>
-  <div class="dataset-controls"><label for="dataset">Dataset</label><select id="dataset"><option>R101</option><option>C101</option><option>RC101</option></select><button id="load" class="primary">Load & solve</button></div>
-</header>
-<main>
-  <section class="intro"><div><div class="eyebrow">OPERATIONS / SIMULATION</div><h1>Every delivery. Every disruption.</h1><p>Explore a delivery day, interrupt a route, and compare how the fleet recovers.</p></div><span id="session-badge" class="badge">25 customers · ready to load</span></section>
-  <div id="message" class="message" role="status" aria-live="polite">Choose a dataset, then load the initial routes to begin.</div>
-  <section class="workspace">
-    <div class="map-card">
-      <div class="section-heading"><div><h2>Fleet network</h2><span id="map-subtitle" class="muted">Plain x/y coordinates · one colour per vehicle</span></div><label class="strategy-label">Map strategy<select id="strategy"><option value="replan">OR-Tools re-plan</option><option value="cheapest_insertion">Cheapest insertion</option><option value="do_nothing">Do nothing</option></select></label></div>
-      <div class="map-wrap"><div id="map" aria-label="Vehicle routes and customer positions"></div><div id="map-empty"><span class="empty-icon">↗</span><h3>Your fleet starts here</h3><p>Load a dataset to see 25 customers,<br>delivery routes, and live vehicle positions.</p></div><div id="busy-overlay" hidden><span class="spinner"></span><span id="busy-label">Planning routes…</span></div></div>
-      <div class="legend"><span><i class="depot"></i>Depot</span><span><i class="pending"></i>Pending</span><span><i class="servicing"></i>Servicing</span><span><i class="served"></i>Served</span><span><i class="unassigned"></i>Unassigned</span><span><i class="vehicle"></i>Vehicle</span><span class="muted">Faint lines = travelled</span></div>
-      <div class="playback"><button id="play" disabled aria-label="Play simulation">▶ Play</button><div class="time-control"><div><label for="time-slider">Simulation time</label><strong><span id="time-value">0</span><span class="muted"> / <span id="time-max">—</span></span></strong></div><input id="time-slider" type="range" min="0" max="230" step="1" value="0" disabled></div><label class="speed-label">Speed<select id="speed"><option value="2">2×</option><option value="5" selected>5×</option><option value="15">15×</option></select></label></div>
-      <div class="timeline-note"><span id="timeline-status">Viewing the initial plan</span><button id="jump-live" class="text-button" hidden>Return to latest event →</button></div>
-    </div>
-    <aside class="dispatch-card">
-      <div class="section-heading"><div><div class="eyebrow">CONTROL ROOM</div><h2>Change the day</h2></div><span class="badge small">ALL 3 STRATEGIES</span></div>
-      <p class="muted control-note">Events apply at the displayed time. Completed deliveries stay locked.</p>
-      <section class="control-section"><h3><span class="step-number">01</span> Vehicle breakdown</h3><label for="vehicle-select">Available vehicle</label><select id="vehicle-select" disabled><option>Load a dataset first</option></select><p id="vehicle-detail" class="muted">Vehicle capacity and activity appear here.</p><button id="break" class="danger" disabled>Break selected vehicle</button></section>
-      <section class="control-section"><h3><span class="step-number">02</span> New delivery</h3><button id="place" class="secondary" disabled>⌖ Choose location on map</button><p id="placement-hint" class="muted">Click to place, or enter x/y coordinates.</p><form id="order-form"><fieldset id="order-fields" disabled><div class="form-grid"><label>X coordinate<input id="order-x" type="number" step="any" required placeholder="40"></label><label>Y coordinate<input id="order-y" type="number" step="any" required placeholder="40"></label><label>Demand<input id="order-demand" type="number" min="0" step="1" value="10" required></label><label>Service time<input id="order-service" type="number" min="0" step="any" value="10" required></label><label>Window opens<input id="order-ready" type="number" min="0" step="any" value="0" required></label><label>Window closes<input id="order-due" type="number" min="0" step="any" value="230" required></label></div><button id="add-order" class="primary" type="submit">Add order & compare</button></fieldset></form></section>
-    </aside>
-  </section>
-  <section class="results-section"><div class="results-heading"><div><div class="eyebrow">PERFORMANCE</div><h2 id="kpi-heading">OR-Tools re-plan</h2></div><span id="delta-context" class="muted">Deltas appear after an event</span></div><div id="cards" class="kpi-grid"></div></section>
-  <section class="bottom-grid"><div class="comparison-card"><div class="section-heading"><h2>Three ways to recover</h2><span class="badge small">SAME EVENTS · INDEPENDENT FLEETS</span></div><div class="table-scroll"><table><thead><tr><th>Strategy</th><th>Delivered</th><th>Distance</th><th>Unassigned</th><th>Late</th><th>Recovery</th></tr></thead><tbody id="comparison-body"><tr><td colspan="6" class="muted">Load a dataset to compare strategies.</td></tr></tbody></table></div><p class="footnote">Distance includes travelled + planned remaining legs. Less distance can mean fewer deliveries. Late includes projected arrivals; unassigned orders are counted separately.</p></div><div class="event-card"><div class="section-heading"><h2>Event log</h2><span id="event-count" class="badge small">0 EVENTS</span></div><ol id="event-log"><li class="muted">No disruptions yet. Try a breakdown around t=90.</li></ol></div></section>
-  <footer>25 initial customers · 2-second route searches · cargo transfer is assumed · one local in-memory session<span>LAST MILE / S5</span></footer>
-</main>
+<div class="shell">
+  <nav class="sidebar" aria-label="Main">
+    <div class="logo">✚</div>
+    <button class="nav active" data-view="ops" title="Operations" aria-label="Operations">▦</button>
+    <button class="nav" data-view="vehicle" title="Vehicle detail" aria-label="Vehicle detail">⛟</button>
+    <button class="nav" data-view="compare" title="Strategies" aria-label="Strategies">⇄</button>
+  </nav>
+
+  <div class="content">
+    <header class="chips" id="chips">
+      <span class="chip">Active <b id="c-active">–</b></span>
+      <span class="chip">Delivered <b id="c-served">–</b></span>
+      <span class="chip">Late <b id="c-late">–</b></span>
+      <span class="chip">Unassigned <b id="c-drop">–</b></span>
+      <span class="chip">Distance <b id="c-dist">–</b></span>
+      <span class="chip">Solve <b id="c-solve">–</b></span>
+      <div class="spacer"></div>
+      <label class="chip sel">Dataset
+        <select id="dataset"><option>R101</option><option>C101</option><option>RC101</option></select></label>
+      <button id="load" class="btn primary">Load &amp; solve</button>
+    </header>
+
+    <div id="message" class="message" role="status" aria-live="polite">Choose a dataset and load the initial routes to begin.</div>
+
+    <!-- OPERATIONS -->
+    <section id="view-ops" class="view">
+      <div class="title-row">
+        <div><h1>Operations Dashboard</h1><p class="muted" id="subtitle">No dataset loaded</p></div>
+        <label class="sel-inline">Strategy
+          <select id="strategy">
+            <option value="replan">OR-Tools re-plan</option>
+            <option value="cheapest_insertion">Cheapest insertion</option>
+            <option value="do_nothing">Do nothing</option>
+          </select></label>
+      </div>
+      <div class="toolbar">
+        <div class="tabs" id="filters">
+          <button class="tab active" data-f="all">All <i id="n-all">0</i></button>
+          <button class="tab" data-f="active">Active <i id="n-active">0</i></button>
+          <button class="tab" data-f="idle">Idle <i id="n-idle">0</i></button>
+          <button class="tab" data-f="broken">Broken <i id="n-broken">0</i></button>
+        </div>
+        <div class="toggles">
+          <label class="toggle">Show routes <input type="checkbox" id="t-routes" checked><span></span></label>
+          <label class="toggle">Show alerts <input type="checkbox" id="t-alerts" checked><span></span></label>
+        </div>
+      </div>
+
+      <div class="map-card">
+        <div class="map-wrap" id="map-wrap">
+          <div id="map"></div>
+          <div id="map-empty"><h3>Your fleet starts here</h3><p>Load a dataset to see the depot, customers and live trucks.</p></div>
+          <aside class="vcard" id="vcard" hidden></aside>
+          <div class="compass" aria-hidden="true"><svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="46" class="ring"/><circle cx="50" cy="50" r="30" class="inner"/><text x="50" y="57" text-anchor="middle" class="nw">N</text><path d="M50 8 L56 22 L44 22 Z" class="needle"/></svg></div>
+          <div class="map-tools">
+            <button id="z-in" aria-label="Zoom in">＋</button><button id="z-out" aria-label="Zoom out">－</button>
+            <button id="z-reset" aria-label="Reset view">⟳</button><button id="place" aria-label="Place a new order on the map">⌖</button>
+          </div>
+          <div id="busy" hidden><span class="spinner"></span><span id="busy-label">Planning routes…</span></div>
+        </div>
+        <div class="playbar">
+          <button id="play" class="btn" disabled>▶ Play</button>
+          <div class="time"><div><span class="muted">Simulation time</span><b><span id="time-value">0</span><span class="muted"> / <span id="time-max">–</span></span></b></div>
+            <input id="time-slider" type="range" min="0" max="230" step="1" value="0" disabled></div>
+          <label class="sel-inline">Speed <select id="speed"><option value="1">1×</option><option value="2" selected>2×</option><option value="5">5×</option></select></label>
+          <button id="jump-live" class="btn ghost" hidden>Latest →</button>
+        </div>
+        <div class="hint"><span>Click a truck to inspect it · ⌖ then click the map to place a new order</span><span id="timeline-status">Viewing the initial plan</span></div>
+      </div>
+
+      <div class="grid-2">
+        <section class="card">
+          <header><h2>Change the day</h2><span class="pill">All 3 strategies</span></header>
+          <p class="muted small pad">Events apply at the displayed time. Completed deliveries stay locked.</p>
+          <div class="pad">
+            <label class="lbl" for="vehicle-select">Vehicle breakdown</label>
+            <select id="vehicle-select" disabled></select>
+            <button id="break" class="btn danger wide" disabled>Take selected vehicle offline</button>
+          </div>
+          <form id="order-form" class="pad">
+            <fieldset id="order-fields" disabled>
+              <div class="lbl">New delivery</div>
+              <div class="form-grid">
+                <label>X<input id="order-x" type="number" step="1" value="35" required></label>
+                <label>Y<input id="order-y" type="number" step="1" value="35" required></label>
+                <label>Demand<input id="order-demand" type="number" min="0" step="1" value="10" required></label>
+                <label>Service<input id="order-service" type="number" min="0" step="1" value="10" required></label>
+                <label>Ready<input id="order-ready" type="number" min="0" step="1" value="0" required></label>
+                <label>Due<input id="order-due" type="number" min="0" step="1" value="230" required></label>
+              </div>
+              <button id="add-order" class="btn primary wide" type="submit">Add order</button>
+            </fieldset>
+          </form>
+        </section>
+        <section class="card">
+          <header><h2>Event log</h2><span class="pill" id="event-count">0 events</span></header>
+          <ul id="event-log" class="log"><li class="muted">No events yet.</li></ul>
+        </section>
+      </div>
+    </section>
+
+    <!-- VEHICLE DETAIL -->
+    <section id="view-vehicle" class="view" hidden>
+      <div class="crumbs muted">Dashboard › Fleet vehicles › <span id="crumb-v">–</span></div>
+      <div class="title-row">
+        <div><h1><span id="vd-name">Vehicle</span> <span class="pill" id="vd-status">–</span></h1><p class="muted" id="vd-sub">–</p></div>
+        <div class="row-gap"><button class="btn ghost" id="vd-prev">‹ Prev</button><button class="btn ghost" id="vd-next">Next ›</button>
+          <button class="btn danger" id="vd-break">Take offline</button><button class="btn primary" id="vd-map">Show on map</button></div>
+      </div>
+      <div class="grid-vd">
+        <section class="card">
+          <header><h2>Cargo layout</h2><span class="pill" id="vd-loaded">–</span></header>
+          <div class="bars">
+            <div><div class="bar-top"><b id="vd-cap-text">–</b><i class="pill" id="vd-cap-pct">–</i></div><div class="bar"><span id="vd-cap-bar"></span></div><span class="muted small">Capacity used</span></div>
+            <div><div class="bar-top"><b id="vd-prog-text">–</b><i class="pill" id="vd-prog-pct">–</i></div><div class="bar"><span id="vd-prog-bar"></span></div><span class="muted small">Route progress</span></div>
+          </div>
+          <div class="truck"><div class="trailer" id="tiles"></div><div class="cab"></div><div class="wheels"><i></i><i></i><i></i></div></div>
+        </section>
+        <section class="card">
+          <header><div><h2>Orders</h2><span class="muted small" id="pk-sub">–</span></div></header>
+          <div id="pk-list" class="pk-list"></div>
+        </section>
+        <section class="card gauges">
+          <div class="gauge"><span class="muted small">Load</span><svg viewBox="0 0 120 70"><path d="M10 62 A50 50 0 0 1 110 62" class="g-bg"/><path id="g-load" d="M10 62 A50 50 0 0 1 110 62" class="g-fg" pathLength="100" stroke-dasharray="0 100"/></svg><b id="g-load-t">–</b></div>
+          <div class="gauge"><span class="muted small">Route time</span><svg viewBox="0 0 120 70"><path d="M10 62 A50 50 0 0 1 110 62" class="g-bg"/><path id="g-time" d="M10 62 A50 50 0 0 1 110 62" class="g-fg" pathLength="100" stroke-dasharray="0 100"/></svg><b id="g-time-t">–</b></div>
+          <div class="alert" id="vd-alert">–</div>
+        </section>
+        <section class="card stats">
+          <div><b id="vd-stops">–</b><span class="muted small">Stops served</span></div>
+          <div><b id="vd-pending">–</b><span class="muted small">Pending</span></div>
+          <div><b id="vd-dist">–</b><span class="muted small">Travelled</span></div>
+          <div><b id="vd-remain">–</b><span class="muted small">Remaining</span></div>
+        </section>
+      </div>
+    </section>
+
+    <!-- STRATEGY COMPARISON -->
+    <section id="view-compare" class="view" hidden>
+      <div class="title-row"><div><h1>Three ways to recover</h1><p class="muted">Same events, independent fleets.</p></div></div>
+      <div id="cards" class="kpi-grid"></div>
+      <section class="card">
+        <header><h2>Strategy comparison</h2><span class="pill">same events · independent fleets</span></header>
+        <div class="table-scroll"><table><thead><tr><th>Strategy</th><th>Delivered</th><th>Distance</th><th>Unassigned</th><th>Late</th><th>Recovery</th></tr></thead>
+          <tbody id="comparison-body"><tr><td colspan="6" class="muted">Load a dataset to compare strategies.</td></tr></tbody></table></div>
+      </section>
+    </section>
+  </div>
+</div>
 </body>
 </html>
