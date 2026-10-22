@@ -10,6 +10,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 from comparison import Comparison
+from baselines import STRATEGIES
 from kpis import calculate_kpis
 from metric import CITIES, DEFAULT_DEPOT, RoadError, RoadMetric
 from parser import find_dataset, load_solomon
@@ -134,12 +135,16 @@ def snapped_pair(a, b):
 def chart_state(snapshot):
     t = snapshot["t"]
     routes, vehicles, assignment = [], [], {}
+    arrivals, service_starts = {}, {}
     for key, vehicle in snapshot["vehicles"].items():
         future_count = 0
         past, future, legs = [], [], []
         for segment in vehicle["segments"]:
+            if segment["kind"] == "travelling" and segment["customer_id"]:
+                arrivals[segment["customer_id"]] = segment["end"]
             if segment["kind"] == "servicing":
                 assignment[segment["customer_id"]] = int(key)
+                service_starts[segment["customer_id"]] = segment["start"]
                 future_count += segment["end"] > t
             if segment["kind"] != "travelling":
                 continue
@@ -168,7 +173,7 @@ def chart_state(snapshot):
                          "served_count": len(vehicle["served"]), "distance_travelled": vehicle["distance_travelled"]})
     unassigned = set(snapshot["unassigned_pool"])
     customers = [{**customer, **snapped(customer["x"], customer["y"]), "status": "unassigned" if int(i) in unassigned else snapshot["node_status"][int(i)],
-                  "vehicle_id": assignment.get(int(i))}
+                  "vehicle_id": assignment.get(int(i)), "arrival": arrivals.get(int(i)), "service_start": service_starts.get(int(i))}
                  for i, customer in snapshot["customers"].items() if int(i) != 0]
     depot = {**snapshot["customers"]["0"], **snapped(snapshot["customers"]["0"]["x"], snapshot["customers"]["0"]["y"])}
     return {"depot": depot, "customers": customers,
@@ -244,6 +249,43 @@ def event(payload: EventPayload):
             raise HTTPException(422, str(exc)) from exc
         revision += 1
         return state_response(payload.time)
+
+
+series_cache: dict = {}
+
+
+@app.get("/timeseries")
+def timeseries(step: Annotated[float, Query(ge=1, le=60)] = 5):
+    """KPIs and fleet activity per strategy sampled every `step` simulated minutes (for the charts)."""
+    with lock:
+        comparison = require_loaded()
+        key = (session_id, revision, step)
+        if key in series_cache:
+            return series_cache[key]
+        max_t = comparison.states["replan"].problem.depot.due
+        times, t = [], 0.0
+        while t < max_t:
+            times.append(t)
+            t += step
+        times.append(max_t)
+        fields = ("served", "dropped", "late", "distance", "moving", "serving", "waiting", "idle", "broken")
+        series = {name: {f: [] for f in fields} for name in STRATEGIES}
+        for t in times:
+            for name, snap in comparison.snapshot(t).items():
+                k = calculate_kpis(snap)
+                s = series[name]
+                s["served"].append(k["served_orders"]); s["dropped"].append(k["dropped_orders"])
+                s["late"].append(k["late_deliveries"]); s["distance"].append(k["distance_travelled"])
+                counts = {"travelling": 0, "servicing": 0, "waiting": 0, "idle": 0, "broken": 0}
+                for vehicle in snap["vehicles"].values():
+                    counts[vehicle["status"]] = counts.get(vehicle["status"], 0) + 1
+                s["moving"].append(counts["travelling"]); s["serving"].append(counts["servicing"])
+                s["waiting"].append(counts["waiting"]); s["idle"].append(counts["idle"]); s["broken"].append(counts["broken"])
+        result = {**metadata(), "times": times, "series": series,
+                  "events": [event_summary(e) for e in comparison.events]}
+        series_cache.clear()
+        series_cache[key] = result
+        return result
 
 
 @app.get("/kpis")

@@ -137,6 +137,8 @@
     $('clock-max').textContent = data.max_time;
     if (view === 'vehicle') renderVehicle();
     if (view === 'compare') renderCompare();
+    if (view === 'orders') renderOrders();
+    if (view === 'analytics') renderAnalytics();
   }
 
   // ---------- fleet panel ----------
@@ -510,10 +512,132 @@
       return `<tr class="${n === $('strategy').value ? 'selected' : ''}"><td>${STRATEGY_NAMES[n]}</td><td>${k.served_orders}/${k.total_orders}</td><td>${dist(k.distance)}</td><td>${k.dropped_orders}</td><td>${k.late_deliveries}</td><td>${fmt(k.solve_time_sec, 3)}s</td></tr>`; }).join('');
   }
 
+  // ---------- orders page ----------
+  let ordSort = {k: 'id', dir: 1}, ordFilter = 'all', ordQuery = '';
+  const slackOf = c => c.arrival == null ? null : c.due - c.arrival;
+  function orderFlag(c) {
+    const slack = slackOf(c);
+    if (c.status === 'unassigned') return 'unassigned';
+    if (slack !== null && slack < 0) return 'late';
+    if (c.status !== 'served' && slack !== null && slack < 10) return 'risk';
+    return c.status;
+  }
+
+  function renderOrders() {
+    const s = current();
+    const rows = s.customers.map(c => ({c, slack: slackOf(c), flag: orderFlag(c)}));
+    const count = f => rows.filter(r => f === 'all' ? true : f === 'risk' ? (r.flag === 'risk' || r.flag === 'late') : r.c.status === f).length;
+    ['all', 'pending', 'servicing', 'served', 'unassigned', 'risk'].forEach(f => { $('ord-n-' + f).textContent = count(f); });
+    $('ord-sub').textContent = `${rows.length} orders · ${count('served')} delivered · ${count('unassigned')} unassigned · ${STRATEGY_NAMES[$('strategy').value]}`;
+    $('book-when').textContent = t >= data.committed_time ? `Booking at ${fmt(t, 0)} min` : 'View is in the past';
+    $('book-go').disabled = !bookPoint || t < data.committed_time;
+    const q = ordQuery.trim().toLowerCase();
+    let list = rows.filter(r => (ordFilter === 'all' || (ordFilter === 'risk' ? (r.flag === 'risk' || r.flag === 'late') : r.c.status === ordFilter))
+      && (!q || `ord-${r.c.id} truck ${r.c.vehicle_id ?? ''} ${r.c.status} ${r.flag}`.includes(q)));
+    const key = {id: r => r.c.id, status: r => r.c.status, truck: r => r.c.vehicle_id ?? 999, ready: r => r.c.ready, arrival: r => r.c.arrival ?? 1e9, slack: r => r.slack ?? 1e9, demand: r => r.c.demand}[ordSort.k];
+    list.sort((a, b) => (key(a) > key(b) ? 1 : key(a) < key(b) ? -1 : 0) * ordSort.dir);
+    $('ord-body').innerHTML = list.map(r => {
+      const c = r.c, kind = r.flag === 'late' ? 'bad' : r.flag === 'risk' ? 'warn' : statusKind(c.status);
+      const label = r.flag === 'late' ? 'late' : r.flag === 'risk' ? 'at risk' : c.status;
+      const slack = r.slack === null ? '–' : r.slack < 0 ? `${fmt(-r.slack, 0)} min late` : `${fmt(r.slack, 0)} min`;
+      return `<tr data-truck="${c.vehicle_id ?? ''}"><td><b>ORD-${c.id}</b></td><td>${pill(label, kind)}</td><td>${c.vehicle_id == null ? '–' : 'Truck ' + c.vehicle_id}</td>
+        <td>${c.ready}–${c.due} min</td><td>${c.arrival == null ? '–' : fmt(c.arrival, 0) + ' min'}</td>
+        <td class="${r.slack !== null && r.slack < 0 ? 'slack-bad' : r.slack !== null && r.slack < 10 && c.status !== 'served' ? 'slack-warn' : ''}">${slack}</td><td>${c.demand}</td></tr>`;
+    }).join('') || '<tr><td colspan="7" class="muted">No orders match.</td></tr>';
+  }
+
+  // ---------- order booking ----------
+  let bookMap = null, bookMarker = null, bookPoint = null, bookSize = 10, bookWindow = 60;
+  function initBookMap() {
+    if (!data || typeof L === 'undefined') return;
+    if (!bookMap) {
+      bookMap = L.map('book-map', {attributionControl: false}).setView([data.geo.lat0, data.geo.lng0], 14);
+      L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {maxZoom: 19}).addTo(bookMap);
+      bookMap.on('click', ev => setBookPoint(ev.latlng.lat, ev.latlng.lng, 'Pinned location'));
+    }
+    setTimeout(() => bookMap.invalidateSize(), 60);
+  }
+  function setBookPoint(lat, lng, label) {
+    bookPoint = {lat, lng};
+    if (bookMarker) bookMarker.setLatLng([lat, lng]);
+    else bookMarker = L.circleMarker([lat, lng], {radius: 9, color: '#040404', weight: 2, fillColor: '#cede62', fillOpacity: 1}).addTo(bookMap);
+    $('book-loc').textContent = `${label} · ${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+    $('book-go').disabled = !(data && t >= data.committed_time);
+  }
+  async function searchPlaces(q) {
+    const g = data.geo, d = 0.08;
+    const url = `https://nominatim.openstreetmap.org/search?format=json&limit=5&q=${encodeURIComponent(q)}&viewbox=${g.lng0 - d},${g.lat0 + d},${g.lng0 + d},${g.lat0 - d}`;
+    const res = await fetch(url, {headers: {Accept: 'application/json'}});
+    return res.ok ? res.json() : [];
+  }
+  function showBookResult() {
+    const id = Math.max(...current().customers.map(c => c.id));
+    const rows = Object.keys(data.strategies).map(n => {
+      const c = data.strategies[n].customers.find(x => x.id === id);
+      const ok = c && c.vehicle_id != null;
+      return `<li class="${ok ? 'good' : 'bad'}"><b>${STRATEGY_NAMES[n]}</b><span>${ok ? `Truck ${c.vehicle_id} · arrives ${fmt(c.arrival, 0)} min (window ${c.ready}–${c.due})` : 'Could not be scheduled'}</span></li>`;
+    }).join('');
+    $('book-result').hidden = false;
+    $('book-result').innerHTML = `<h3>ORD-${id} booked</h3><ul>${rows}</ul>`;
+  }
+
+  // ---------- analytics page ----------
+  const STRATEGY_COLOURS = {do_nothing: '#e5604d', cheapest_insertion: '#e8b04a', replan: '#cede62'};
+  let seriesCache = {key: '', data: null};
+  const plotLayout = (extra = {}) => ({paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)', font: {color: '#9e9f9f', family: 'Segoe UI, Arial', size: 12},
+    margin: {l: 44, r: 16, t: 14, b: 56}, xaxis: {title: {text: 'Minutes into the day'}, gridcolor: '#232326', zeroline: false},
+    yaxis: {gridcolor: '#232326', zeroline: false}, legend: {orientation: 'h', y: 1.14}, hovermode: 'x unified', ...extra});
+  const plotConfig = {displayModeBar: false, responsive: true};
+
+  async function renderAnalytics() {
+    const key = `${data.session_id}:${data.revision}`;
+    if (seriesCache.key !== key) {
+      $('an-sub').textContent = 'Building charts…';
+      try { seriesCache = {key, data: await api('/timeseries?step=5')}; } catch (e) { $('an-sub').textContent = e.message; return; }
+    }
+    if (view !== 'analytics') return;
+    const ts = seriesCache.data, names = Object.keys(ts.series), current_name = $('strategy').value;
+    $('an-sub').textContent = `${data.dataset} · ${ts.events.length} event${ts.events.length === 1 ? '' : 's'} · sampled every 5 minutes`;
+    $('an-strategy').textContent = STRATEGY_NAMES[current_name];
+
+    const s = current(), k = data.kpis[current_name];
+    const working = s.vehicles.filter(v => v.served_count + v.pending_count > 0).length;
+    const driving = s.vehicles.map(v => v.distance_travelled + (s.routes.find(r => r.vehicle_id === v.id) ? routeLength(s.routes.find(r => r.vehicle_id === v.id), 'future') : 0)).filter(d => d > 0);
+    const avgDrive = driving.length ? driving.reduce((a, b) => a + b, 0) / driving.length : 0;
+    const util = working ? Math.round(avgDrive / data.max_time * 100) : 0;
+    $('an-cards').innerHTML = [[`${k.served_orders}/${k.total_orders}`, 'Orders delivered'], [`${working}/${s.vehicles.length}`, 'Trucks working'],
+      [`${fmt(avgDrive, 0)} min`, 'Average driving per truck'], [`${util}%`, 'Fleet utilisation (driving ÷ day)']]
+      .map(([v, l]) => `<div class="an-card"><b>${v}</b><span>${l}</span></div>`).join('');
+
+    const marks = ts.events.map(e => ({type: 'line', x0: e.time, x1: e.time, y0: 0, y1: 1, yref: 'paper', line: {color: '#e5604d', width: 2, dash: 'dot'}}));
+    const notes = ts.events.map(e => ({x: e.time, y: 1, yref: 'paper', text: e.type === 'break_vehicle' ? `Truck ${e.payload.vehicle_id} offline` : 'New order', showarrow: false, xanchor: 'left', yanchor: 'bottom', font: {color: '#e5604d', size: 11}}));
+    const lines = field => names.map(n => ({x: ts.times, y: ts.series[n][field], name: STRATEGY_NAMES[n], mode: 'lines', line: {color: STRATEGY_COLOURS[n], width: 3, shape: 'hv'}}));
+    Plotly.react('ch-served', lines('served'), plotLayout({shapes: marks, annotations: notes, yaxis: {title: {text: 'Orders'}, gridcolor: '#232326', zeroline: false}}), plotConfig);
+    Plotly.react('ch-dropped', lines('dropped'), plotLayout({shapes: marks, annotations: notes, yaxis: {title: {text: 'Orders'}, gridcolor: '#232326', zeroline: false, dtick: 1, rangemode: 'tozero'}}), plotConfig);
+
+    const fs = ts.series[current_name];
+    const area = (f, name, colour) => ({x: ts.times, y: fs[f], name, stackgroup: 'one', mode: 'lines', line: {width: 0}, fillcolor: colour});
+    Plotly.react('ch-fleet', [area('moving', 'Moving', 'rgba(206,222,98,.85)'), area('serving', 'Servicing', 'rgba(183,164,255,.85)'), area('waiting', 'Waiting', 'rgba(232,176,74,.85)'),
+      area('broken', 'Broken', 'rgba(229,96,77,.9)'), area('idle', 'Idle', 'rgba(90,90,88,.55)')],
+      plotLayout({shapes: marks, annotations: notes, yaxis: {title: {text: 'Trucks'}, gridcolor: '#232326', zeroline: false}}), plotConfig);
+
+    Plotly.react('ch-trade', [{type: 'bar', x: names.map(n => STRATEGY_NAMES[n]), y: names.map(n => Number(dist(data.kpis[n].distance).split(' ')[0])),
+      marker: {color: names.map(n => STRATEGY_COLOURS[n])}, text: names.map(n => `${data.kpis[n].dropped_orders} unassigned · ${data.kpis[n].late_deliveries} late`), textposition: 'outside', cliponaxis: false,
+      hovertemplate: '%{x}<br>%{y} ' + (data.routing === 'road' ? 'km' : 'units') + '<extra></extra>'}],
+      plotLayout({xaxis: {gridcolor: '#232326'}, yaxis: {title: {text: data.routing === 'road' ? 'Kilometres' : 'Units'}, gridcolor: '#232326', zeroline: false}, margin: {l: 52, r: 16, t: 28, b: 40}, hovermode: 'closest'}), plotConfig);
+
+    $('an-events').innerHTML = ts.events.length ? ts.events.map(e => {
+      const title = e.type === 'break_vehicle' ? `Truck ${e.payload.vehicle_id} taken offline` : `New order at (${fmt(e.payload.x, 0)}, ${fmt(e.payload.y, 0)})`;
+      const cell = n => { const r = e.strategies[n]; return `${r.before.dropped_orders} → ${r.after.dropped_orders} unassigned · ${r.delta.distance >= 0 ? '+' : ''}${dist(r.delta.distance)}`; };
+      return `<tr><td>${fmt(e.time, 0)} min</td><td>${title}</td><td>${cell('do_nothing')}</td><td>${cell('cheapest_insertion')}</td><td>${cell('replan')}</td></tr>`;
+    }).join('') : '<tr><td colspan="5" class="muted">No events yet. Take a truck offline or book an order.</td></tr>';
+  }
+
   // ---------- actions ----------
   function showView(name) {
     view = name;
-    ['ops', 'vehicle', 'compare'].forEach(v => { $('view-' + v).hidden = v !== name; });
+    ['ops', 'orders', 'vehicle', 'analytics', 'compare'].forEach(v => { $('view-' + v).hidden = v !== name; });
+    if (name === 'orders') setTimeout(initBookMap, 0);
     document.querySelectorAll('.nav').forEach(b => b.classList.toggle('active', b.dataset.view === name));
     if (data) { render(); if (name === 'ops') setTimeout(() => { if (mode === 'street' && lmap) lmap.invalidateSize(); else if (!$('map').hidden) Plotly.Plots.resize($('map')); }, 0); }
   }
@@ -542,7 +666,8 @@
       const next = await post('/event', {...payload, time: t, session_id: data.session_id, revision: data.revision}, 'Re-planning all strategies…');
       accept(next);
       say(okMessage);
-    } catch (e) { say(e.message, true); }
+      return true;
+    } catch (e) { say(e.message, true); return false; }
   }
   const breakVehicle = id => sendEvent({event_type: 'breakdown', vehicle_id: Number(id)}, `Vehicle ${id} taken offline at ${fmt(t, 0)} min. All three strategies re-planned.`);
 
@@ -612,6 +737,51 @@
   const step = d => { if (!data) return; const ids = current().vehicles.map(v => v.id); selected = ids[(ids.indexOf(selected) + d + ids.length) % ids.length]; renderVehicle(); };
   $('vd-prev').onclick = () => step(-1);
   $('vd-next').onclick = () => step(1);
+  // orders + booking wiring
+  $('ord-search').oninput = e => { ordQuery = e.target.value; if (data) renderOrders(); };
+  $('ord-filters').onclick = e => {
+    const tab = e.target.closest('.tab'); if (!tab) return;
+    ordFilter = tab.dataset.s;
+    document.querySelectorAll('#ord-filters .tab').forEach(b => b.classList.toggle('active', b === tab));
+    if (data) renderOrders();
+  };
+  $('ord-head').onclick = e => {
+    const th = e.target.closest('th'); if (!th) return;
+    ordSort = {k: th.dataset.k, dir: ordSort.k === th.dataset.k ? -ordSort.dir : 1};
+    if (data) renderOrders();
+  };
+  $('ord-body').onclick = e => {
+    const row = e.target.closest('tr'); if (!row || !row.dataset.truck) return;
+    selected = Number(row.dataset.truck); cardOpen = true; showView('ops');
+  };
+  $('ord-book-open').onclick = () => $('book-card').scrollIntoView({behavior: 'smooth', block: 'start'});
+  $('book-size').onclick = e => { const b = e.target.closest('.opt'); if (!b) return; bookSize = Number(b.dataset.d); document.querySelectorAll('#book-size .opt').forEach(x => x.classList.toggle('on', x === b)); };
+  $('book-slot').onclick = e => { const b = e.target.closest('.opt'); if (!b) return; bookWindow = Number(b.dataset.w); document.querySelectorAll('#book-slot .opt').forEach(x => x.classList.toggle('on', x === b)); };
+  const runSearch = async () => {
+    const q = $('book-q').value.trim(); if (!q || !data) return;
+    $('book-results').innerHTML = '<li class="muted small">Searching…</li>';
+    try {
+      const found = await searchPlaces(q);
+      $('book-results').innerHTML = found.length ? found.map((p, i) => `<li><button data-i="${i}">${p.display_name}</button></li>`).join('') : '<li class="muted small">No results near the depot. Click the map instead.</li>';
+      $('book-results').onclick = ev => {
+        const b = ev.target.closest('button'); if (!b) return;
+        const p = found[Number(b.dataset.i)];
+        setBookPoint(Number(p.lat), Number(p.lon), p.display_name.split(',')[0]);
+        bookMap.setView([Number(p.lat), Number(p.lon)], 16);
+        $('book-results').innerHTML = '';
+      };
+    } catch (err) { $('book-results').innerHTML = '<li class="muted small">Search is unavailable. Click the map instead.</li>'; }
+  };
+  $('book-find').onclick = runSearch;
+  $('book-q').onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); runSearch(); } };
+  $('book-go').onclick = async () => {
+    if (!bookPoint || !data) return;
+    const [x, y] = fromLatLng({lat: bookPoint.lat, lng: bookPoint.lng});
+    const ready = Math.ceil(t), due = bookWindow ? Math.min(data.max_time, ready + bookWindow) : data.max_time;
+    $('book-result').hidden = true;
+    const ok = await sendEvent({event_type: 'new_order', x, y, demand: bookSize, ready, due, service: 10}, `Order booked at ${fmt(t, 0)} min. All three strategies re-planned.`);
+    if (ok) { showBookResult(); renderOrders(); }
+  };
   $('order-form').onsubmit = e => {
     e.preventDefault();
     sendEvent({event_type: 'new_order', x: Number($('order-x').value), y: Number($('order-y').value), demand: Number($('order-demand').value),
@@ -628,7 +798,7 @@
     if (wanted > 0) first = await api(`/state?t=${wanted}`);
     if (params.has('truck')) { selected = Number(params.get('truck')); cardOpen = true; }
     accept(first);
-    if (['vehicle', 'compare'].includes(params.get('view'))) showView(params.get('view'));
+    if (['vehicle', 'compare', 'orders', 'analytics'].includes(params.get('view'))) showView(params.get('view'));
     $('order-ready').value = Math.round(first.time); $('order-due').value = first.max_time;
     say(`${first.dataset} is loaded. Move the slider or press Play.`);
   }).catch(() => {});

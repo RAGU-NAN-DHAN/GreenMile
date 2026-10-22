@@ -52,6 +52,11 @@ routing need an internet connection; the plain x/y map and straight-line mode wo
 6. The 📍 button places the depot at an exact point on the street map and re-plans around it. The
    default depot is on Jimmy Carter Road at VIT Vellore.
 
+Other pages (sidebar): **Orders** lists every order with status, truck, window, planned arrival and slack
+(filter, search, sort) and has a three-step **Book an order** panel (search or pin a location, parcel
+size, delivery time) that shows how each strategy would handle the new order. **Analytics** charts orders
+delivered, orders left unassigned, fleet activity and distance per strategy, with the event history.
+
 Switch **Distance** to Straight-line to reproduce the benchmark metric exactly.
 
 ## How it works

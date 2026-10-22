@@ -3,19 +3,22 @@
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
   <title>GreenMile — Operations</title>
-  <link rel="stylesheet" href="/static/style.css?v=8">
+  <link rel="icon" type="image/svg+xml" href="/static/logo.svg">
+  <link rel="stylesheet" href="/static/style.css?v=10">
   <link rel="stylesheet" href="/static/vendor/leaflet/leaflet.css">
   <script defer src="/static/vendor/plotly.min.js"></script>
   <script defer src="/static/vendor/leaflet/leaflet.js"></script>
-  <script defer src="/static/app.js?v=8"></script>
+  <script defer src="/static/app.js?v=10"></script>
 </head>
 <body>
 <div class="shell">
   <nav class="sidebar" aria-label="Main">
-    <div class="logo" title="GreenMile">✚</div>
-    <button class="nav active" data-view="ops" title="Operations" aria-label="Operations">▦</button>
-    <button class="nav" data-view="vehicle" title="Vehicle detail" aria-label="Vehicle detail">⛟</button>
-    <button class="nav" data-view="compare" title="Strategies" aria-label="Strategies">⇄</button>
+    <img class="logo" src="/static/logo.svg" alt="GreenMile" title="GreenMile">
+    <button class="nav active" data-view="ops" aria-label="Map" title="Operations map"><svg viewBox="0 0 24 24"><path d="M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2z"/><path d="M9 4v14M15 6v14"/></svg><span>Map</span></button>
+    <button class="nav" data-view="orders" aria-label="Orders" title="Orders and booking"><svg viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13"/><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/></svg><span>Orders</span></button>
+    <button class="nav" data-view="vehicle" aria-label="Trucks" title="Truck detail"><svg viewBox="0 0 24 24"><path d="M2 7h11v9H2z"/><path d="M13 10h4l4 4v2h-8z"/><circle cx="6" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg><span>Trucks</span></button>
+    <button class="nav" data-view="analytics" aria-label="Analytics" title="Analytics"><svg viewBox="0 0 24 24"><path d="M4 20V11M10 20V4M16 20v-6M22 20H2"/></svg><span>Analytics</span></button>
+    <button class="nav" data-view="compare" aria-label="Compare" title="Strategy comparison"><svg viewBox="0 0 24 24"><path d="M4 8h14l-3-3M20 16H6l3 3"/></svg><span>Compare</span></button>
   </nav>
 
   <div class="content">
@@ -165,6 +168,56 @@
           <div><b id="vd-remain">–</b><span class="muted small">Remaining</span></div>
         </section>
       </div>
+    </section>
+
+    <!-- ORDERS -->
+    <section id="view-orders" class="view" hidden>
+      <div class="title-row">
+        <div><h1>Orders</h1><p class="muted" id="ord-sub">–</p></div>
+        <div class="row-gap"><input id="ord-search" type="search" placeholder="Search order, truck or status"><button class="btn primary" id="ord-book-open">Book an order</button></div>
+      </div>
+      <div class="tabs" id="ord-filters">
+        <button class="tab active" data-s="all">All <i id="ord-n-all">0</i></button>
+        <button class="tab" data-s="pending">Pending <i id="ord-n-pending">0</i></button>
+        <button class="tab" data-s="servicing">Servicing <i id="ord-n-servicing">0</i></button>
+        <button class="tab" data-s="served">Delivered <i id="ord-n-served">0</i></button>
+        <button class="tab" data-s="unassigned">Unassigned <i id="ord-n-unassigned">0</i></button>
+        <button class="tab" data-s="risk">At risk <i id="ord-n-risk">0</i></button>
+      </div>
+      <div class="ord-grid">
+        <section class="card"><div class="table-scroll ord-table"><table>
+          <thead><tr id="ord-head"><th data-k="id">Order</th><th data-k="status">Status</th><th data-k="truck">Truck</th><th data-k="ready">Window</th><th data-k="arrival">Planned arrival</th><th data-k="slack">Slack</th><th data-k="demand">Demand</th></tr></thead>
+          <tbody id="ord-body"></tbody></table></div></section>
+        <aside class="card book" id="book-card">
+          <header><div><h2>Book an order</h2><span class="muted small">Three quick steps</span></div><span class="pill" id="book-when">–</span></header>
+          <div class="pad">
+            <div class="step"><b>1</b> Where should it go?</div>
+            <div class="find"><input id="book-q" placeholder="Search a place or address"><button class="btn" id="book-find">Search</button></div>
+            <ul id="book-results" class="results"></ul>
+            <div id="book-map"></div>
+            <p class="muted small" id="book-loc">Search, or click the map to drop a pin</p>
+            <div class="step"><b>2</b> Parcel size</div>
+            <div class="opts" id="book-size"><button class="opt" data-d="5">Small<small>5 units</small></button><button class="opt on" data-d="10">Medium<small>10 units</small></button><button class="opt" data-d="20">Large<small>20 units</small></button></div>
+            <div class="step"><b>3</b> Delivery time</div>
+            <div class="opts" id="book-slot"><button class="opt on" data-w="60">Within 1 hour</button><button class="opt" data-w="120">Within 2 hours</button><button class="opt" data-w="0">Anytime today</button></div>
+            <button class="btn primary wide" id="book-go" disabled>Book order</button>
+            <div id="book-result" class="book-result" hidden></div>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <!-- ANALYTICS -->
+    <section id="view-analytics" class="view" hidden>
+      <div class="title-row"><div><h1>Analytics</h1><p class="muted" id="an-sub">–</p></div></div>
+      <div id="an-cards" class="an-cards"></div>
+      <div class="an-grid">
+        <section class="card"><header><h2>Orders delivered over the day</h2></header><div id="ch-served" class="chart"></div></section>
+        <section class="card"><header><h2>Orders left unassigned</h2></header><div id="ch-dropped" class="chart"></div></section>
+        <section class="card"><header><h2>Fleet activity</h2><span class="muted small" id="an-strategy">–</span></header><div id="ch-fleet" class="chart"></div></section>
+        <section class="card"><header><h2>Distance by strategy</h2></header><div id="ch-trade" class="chart"></div></section>
+      </div>
+      <section class="card"><header><h2>Event history</h2></header><div class="table-scroll"><table><thead><tr><th>Time</th><th>Event</th><th>Do nothing</th><th>Cheapest insertion</th><th>OR-Tools re-plan</th></tr></thead><tbody id="an-events"></tbody></table></div></section>
     </section>
 
     <!-- STRATEGY COMPARISON -->
