@@ -542,7 +542,7 @@ Scenario: R101, road mode, you take **Truck 3** offline at **minute 90**.
 16. **Why not use real roads for the benchmark?** Published values assume straight-line distances.
 17. **How are rail tracks handled?** The driving profile excludes them except at crossings.
 18. **What does "snapped" mean?** The point is moved to the nearest drivable road (median 67 m for R101 at VIT).
-19. **How many tests and what do they cover?** 130, across parser, solver, simulator, strategies, KPIs,
+19. **How many tests and what do they cover?** 136, across parser, solver, simulator, strategies, KPIs,
     API and frontend assets (section 9.1).
 20. **What would you do next?** Section 14.
 
