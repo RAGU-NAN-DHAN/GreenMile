@@ -167,3 +167,67 @@ tr.selected{background:#171908}tr.selected td:first-child{color:var(--accent)}
 #busy{z-index:1100}
 /* OpenStreetMap tiles are light; invert them into a dark street map */
 #lmap .leaflet-tile-pane{filter:invert(1) hue-rotate(180deg) brightness(.75) contrast(.9) saturate(.45)}
+
+/* fleet panel + moving trucks */
+.ops-grid{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:14px;align-items:start}
+.fleet{display:flex;flex-direction:column;max-height:640px}
+.fleet-sum{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;padding:10px 12px;border-bottom:1px solid var(--line);text-align:center}
+.fleet-sum div{background:var(--panel2);border-radius:10px;padding:6px 2px}.fleet-sum b{display:block;font-size:16px;font-variant-numeric:tabular-nums}.fleet-sum span{font-size:9px;color:var(--muted)}
+.fleet-list{overflow:auto;padding:8px;display:flex;flex-direction:column;gap:6px}
+.trow{display:grid;grid-template-columns:34px 1fr auto;gap:10px;align-items:center;text-align:left;width:100%;padding:9px 10px;border-radius:14px;background:var(--panel2);border:1px solid var(--line)}
+.trow.sel{border-color:#4d5420;background:#171908}
+.tbadge{width:34px;height:34px;border-radius:10px;background:#0c0c0b;border:1px solid var(--line2);display:grid;place-content:center;font-weight:700;font-size:13px}
+.trow.travelling .tbadge{border-color:var(--accent);color:var(--accent)}.trow.servicing .tbadge{border-color:var(--violet);color:var(--violet)}
+.trow.waiting .tbadge{border-color:#e8b04a;color:#e8b04a}.trow.broken .tbadge{border-color:var(--red);color:var(--red)}
+.tmain{display:flex;flex-direction:column;min-width:0;gap:2px}.tmain b{font-size:13px}
+.tmain small{color:var(--muted);font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tload{text-align:right;font-weight:600;font-size:13px;font-variant-numeric:tabular-nums}.tload small{display:block;font-size:9px;color:var(--muted);font-weight:400}
+.trow .bar{height:4px;margin:3px 0 0}
+.tk{position:relative;width:24px;height:34px}
+.tk .truck{width:100%;height:100%}.tk svg{width:100%;height:100%;filter:drop-shadow(0 1px 2px rgba(0,0,0,.8))}
+.t-trailer{fill:#f4f4f4}.t-cab{fill:#b8b8b8}.t-glass{fill:#1a1a19}
+.tk.sel .t-trailer{fill:var(--accent)}.tk.sel .t-cab{fill:#9aab3c}
+.tk.sel::before{content:"";position:absolute;left:-9px;top:-3px;width:42px;height:42px;border-radius:50%;background:rgba(206,222,98,.22)}
+.tk.servicing .t-trailer{fill:var(--violet)}.tk.waiting .t-trailer{fill:#e8b04a}
+.tk.idle{opacity:.65}.tk.broken .t-trailer,.tk.broken .t-cab{fill:var(--red)}
+.tid{position:absolute;left:50%;top:-13px;transform:translateX(-50%);font-size:10px;font-weight:700;color:#f4f4f4;text-shadow:0 0 3px #000,0 0 3px #000}
+#lmap.playing .leaflet-marker-icon.vtruck{transition:transform .25s linear}
+@media(max-width:1100px){.ops-grid{grid-template-columns:1fr}.fleet{max-height:420px}}
+
+.clock{position:absolute;top:14px;left:50%;transform:translateX(-50%);z-index:1000;background:#111110e6;border:1px solid var(--line2);border-radius:99px;padding:5px 16px;font-size:13px;font-variant-numeric:tabular-nums;pointer-events:none}
+.tmain .tt{color:var(--text);font-size:10px;opacity:.75}
+
+/* side-view truck icon */
+.tk{width:38px;height:26px}
+.tk.sel::before{left:-6px;top:-9px;width:50px;height:44px;border-radius:50%}
+.t-wheel{fill:#111110;stroke:#8e8f95;stroke-width:1.2}
+.tk .truck{transition:none}
+.tbadge{width:44px;height:38px;border-radius:10px;flex-direction:column;gap:0;display:flex;align-items:center;justify-content:center;padding:2px 0}
+.tbadge svg{width:30px;height:19px}
+.tbadge i{font-style:normal;font-size:10px;font-weight:700;line-height:1}
+.tbadge .t-trailer{fill:#cfcfcf}.tbadge .t-cab{fill:#9a9a9a}
+.trow.travelling .tbadge .t-trailer{fill:var(--accent)}.trow.servicing .tbadge .t-trailer{fill:var(--violet)}
+.trow.waiting .tbadge .t-trailer{fill:#e8b04a}.trow.broken .tbadge .t-trailer,.trow.broken .tbadge .t-cab{fill:var(--red)}
+.trow{grid-template-columns:44px 1fr auto}
+
+/* make working trucks stand out */
+.tk{width:48px;height:32px}
+.tk .truck{filter:drop-shadow(0 0 4px rgba(0,0,0,.9))}
+.tk.travelling .truck{filter:drop-shadow(0 0 6px rgba(206,222,98,.9))}
+.tk.travelling::after{content:"";position:absolute;left:3px;top:-2px;width:42px;height:36px;border-radius:50%;border:2px solid rgba(206,222,98,.7);animation:pulse 1.4s ease-out infinite;pointer-events:none}
+@keyframes pulse{from{transform:scale(.7);opacity:.9}to{transform:scale(1.5);opacity:0}}
+.tk.sel::before{left:-4px;top:-8px;width:56px;height:48px}
+.tid{top:-15px;font-size:11px;background:#040404b3;border-radius:6px;padding:0 4px}
+.idle-badge{background:#111110e6;border:1px solid var(--line2);border-radius:99px;padding:1px 8px;font-size:10px;color:#cfd0d4;white-space:nowrap;display:inline-block}
+
+/* truck marker = the same badge as the fleet list: rounded square, status colour, truck, number */
+.tkb{position:relative;width:48px;height:46px;border-radius:12px;background:#0c0c0bf2;border:2px solid var(--line2);display:flex;flex-direction:column;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,.75);color:#cfcfcf}
+.tkb svg{width:32px;height:21px}
+.tkb i{font-style:normal;font-size:13px;font-weight:700;line-height:1;margin-top:1px}
+.tkb .t-trailer{fill:#cfcfcf}.tkb .t-cab{fill:#9a9a9a}.tkb .t-glass{fill:#0c0c0b}
+.tkb.travelling{border-color:var(--accent);color:var(--accent)}.tkb.travelling .t-trailer{fill:var(--accent)}
+.tkb.servicing{border-color:var(--violet);color:var(--violet)}.tkb.servicing .t-trailer{fill:var(--violet)}
+.tkb.waiting{border-color:#e8b04a;color:#e8b04a}.tkb.waiting .t-trailer{fill:#e8b04a}
+.tkb.broken{border-color:var(--red);color:var(--red)}.tkb.broken .t-trailer,.tkb.broken .t-cab{fill:var(--red)}
+.tkb.sel{box-shadow:0 0 0 5px rgba(206,222,98,.28),0 2px 8px rgba(0,0,0,.75)}
+.tkb.travelling::after{content:"";position:absolute;inset:-3px;border-radius:15px;border:2px solid rgba(206,222,98,.7);animation:pulse 1.4s ease-out infinite;pointer-events:none}

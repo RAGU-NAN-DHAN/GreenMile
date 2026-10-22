@@ -16,8 +16,12 @@
   let controller = null;
   let viewRev = 0;            // bump to reset map zoom
   let view = 'ops';
-  let mode = 'plain';         // 'plain' (Plotly x/y) or 'street' (Leaflet, illustrative placement)
-  let lmap = null, llayer = null, fitted = '';
+  let mode = 'street';        // 'street' (Leaflet, grid placed on a real map) or 'plain' (Plotly x/y)
+  let cardOpen = false;       // the truck card opens over the map only after a truck is clicked
+  // Idle trucks wait at the depot (stacked on one spot), so only working trucks are drawn as icons.
+  const onMap = v => (v.activity || {}).kind !== 'idle' || filter === 'idle';
+  let lmap = null, llayer = null, vlayer = null, fitted = '', trucksSession = '';
+  const trucks = new Map();   // truck id -> {marker, heading}; markers persist so they glide while playing
   // The backend places the Solomon grid on the map (data.geo): the point (cx, cy) sits at (lat0, lng0), place_m metres per unit.
   function toLatLng(x, y) {
     const g = data.geo;
@@ -126,8 +130,45 @@
     drawMap();
     if (data.routing === 'road') $('c-road').textContent = `${(k.distance * data.geo.metres_per_unit / 1000).toFixed(1)} km`;
     renderCard();
+    renderFleet();
+    $('clock-t').textContent = fmt(t, 0);
+    $('clock-max').textContent = data.max_time;
     if (view === 'vehicle') renderVehicle();
     if (view === 'compare') renderCompare();
+  }
+
+  // ---------- fleet panel ----------
+  const left = until => Math.max(0, Math.round(until - t));
+  function activityText(v) {
+    const a = v.activity || {kind: v.status};
+    const order = a.customer_id ? `ORD-${a.customer_id}` : '';
+    switch (a.kind) {
+      case 'travelling': return a.customer_id === 0 ? `Returning to depot · arrives in ${left(a.until)}` : `→ ${order} · ETA in ${left(a.until)}`;
+      case 'servicing': return `Servicing ${order} · ${left(a.until)} left`;
+      case 'waiting': return `Waiting at ${order} · starts in ${left(a.until)}`;
+      case 'broken': return 'Offline · orders reassigned';
+      default: return v.served_count && !v.pending_count ? 'Finished for the day' : 'Idle at depot';
+    }
+  }
+  const timeText = v => v.status === 'broken' ? 'Broke down' : v.finish == null ? 'No route' : v.finish <= t ? `Back at depot (t=${fmt(v.finish, 0)})` : `Back at depot by t=${fmt(v.finish, 0)}`;
+
+  function renderFleet() {
+    const s = current();
+    const shown = s.vehicles.filter(v => filter === 'all' || group(v.status) === filter);
+    const count = kind => s.vehicles.filter(v => (v.activity || {}).kind === kind).length;
+    $('fleet-sub').textContent = `${data.dataset} · ${STRATEGY_NAMES[$('strategy').value]}`;
+    $('fleet-count').textContent = `${shown.length} truck${shown.length === 1 ? '' : 's'}`;
+    $('fleet-sum').innerHTML = [['travelling', 'Moving'], ['servicing', 'Serving'], ['waiting', 'Waiting'], ['broken', 'Broken']]
+      .map(([k, label]) => `<div><b>${count(k)}</b><span>${label}</span></div>`).join('');
+    $('fleet-list').innerHTML = shown.map(v => {
+      const total = v.served_count + v.pending_count, done = total ? Math.round(v.served_count / total * 100) : 0;
+      const loadPct = v.capacity ? Math.round(v.used_capacity / v.capacity * 100) : 0;
+      return `<button class="trow ${(v.activity || {}).kind || ''} ${v.id === selected ? 'sel' : ''}" data-id="${v.id}">
+        <span class="tbadge">${TRUCK_SVG}<i>${v.id}</i></span>
+        <span class="tmain"><b>Truck ${v.id}</b><small>${activityText(v)}</small><small class="tt">${timeText(v)}</small>
+          <span class="bar"><span style="width:${done}%"></span></span></span>
+        <span class="tload">${loadPct}%<small>load</small></span></button>`;
+    }).join('') || '<p class="muted small pad">No trucks match this filter.</p>';
   }
 
   function renderLog() {
@@ -171,6 +212,13 @@
     }
   }
   const metres = (a, b) => Math.hypot((b[0] - a[0]) * 111320, (b[1] - a[1]) * 111320 * Math.cos(a[0] * Math.PI / 180));
+  // Side-view truck (faces right). Flipped horizontally when the truck heads west.
+  const TRUCK_SVG = '<svg viewBox="0 0 38 24" aria-hidden="true"><rect x="1" y="2" width="23" height="14" rx="2" class="t-trailer"/><path d="M26 6h6l5 6v6H26z" class="t-cab"/><path d="M28 8h3.4l3 4H28z" class="t-glass"/><circle cx="8" cy="19" r="3.3" class="t-wheel"/><circle cx="18" cy="19" r="3.3" class="t-wheel"/><circle cx="31" cy="19" r="3.3" class="t-wheel"/></svg>';
+  function bearing(a, b) {
+    const rad = Math.PI / 180, dl = (b[1] - a[1]) * rad;
+    const y = Math.sin(dl) * Math.cos(b[0] * rad), x = Math.cos(a[0] * rad) * Math.sin(b[0] * rad) - Math.sin(a[0] * rad) * Math.cos(b[0] * rad) * Math.cos(dl);
+    return (Math.atan2(y, x) / rad + 360) % 360;
+  }
   // Split a polyline at a fraction of its length: [part before, part after, point at the split].
   function splitAt(coords, fraction) {
     const lengths = coords.slice(1).map((c, i) => metres(coords[i], c));
@@ -198,6 +246,7 @@
       L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',
         {maxZoom: 19, attribution: '© OpenStreetMap contributors'}).addTo(lmap);
       llayer = L.layerGroup().addTo(lmap);
+      vlayer = L.layerGroup().addTo(lmap);
       lmap.on('click', ev => {
         if (settingDepot) { settingDepot = false; $('depot-pin').classList.remove('active'); anchor = {lat: ev.latlng.lat, lng: ev.latlng.lng}; loadDataset(); return; }
         if (!placing) return;
@@ -237,12 +286,35 @@
         .bindTooltip(`Order ${c.id} · ${c.status}<br>Demand ${c.demand} · window ${c.ready}–${c.due}<br>Vehicle ${c.vehicle_id ?? 'unassigned'}`).addTo(llayer);
       if (showAlerts && c.status === 'unassigned') L.circleMarker(cl(c), {radius: 13, color: '#e5604d', weight: 2, fill: false, interactive: false}).addTo(llayer);
     });
-    s.vehicles.filter(v => filter === 'all' || group(v.status) === filter).forEach(v => {
-      const cls = v.status === 'broken' ? 'broken' : v.id === selected ? 'sel' : '';
-      L.marker(vehiclePoint[v.id] || cl(v), {icon: L.divIcon({className: '', html: `<div class="vmark ${cls}"></div>`, iconSize: [16, 16], iconAnchor: [8, 8]}), zIndexOffset: v.id === selected ? 1000 : 0})
-        .bindTooltip(`Vehicle ${v.id} · ${v.status}<br>Load ${v.used_capacity}/${v.capacity}`)
-        .on('click', () => { selected = v.id; render(); }).addTo(llayer);
+    if (trucksSession !== data.session_id) { vlayer.clearLayers(); trucks.clear(); trucksSession = data.session_id; }
+    const shownIds = new Set();
+    s.vehicles.filter(v => (filter === 'all' || group(v.status) === filter) && onMap(v)).forEach(v => {
+      shownIds.add(v.id);
+      const pos = vehiclePoint[v.id] || cl(v);
+      let entry = trucks.get(v.id);
+      if (!entry) {
+        const marker = L.marker(pos, {icon: L.divIcon({className: 'vtruck', iconSize: [48, 46], iconAnchor: [24, 23],
+          html: `<div class="tkb">${TRUCK_SVG}<i>${v.id}</i></div>`})}).addTo(vlayer);
+        const id = v.id;
+        marker.on('click', () => { selected = id; cardOpen = true; render(); });
+        entry = {marker, heading: 0, flip: false};
+        trucks.set(v.id, entry);
+      } else {
+        const prev = entry.marker.getLatLng();
+        if (metres([prev.lat, prev.lng], pos) > 2) { entry.heading = bearing([prev.lat, prev.lng], pos); entry.flip = Math.sin(entry.heading * Math.PI / 180) < -0.15; }
+        entry.marker.setLatLng(pos);
+      }
+      const el = entry.marker.getElement();
+      if (el) {
+        el.querySelector('.tkb').className = `tkb ${(v.activity || {}).kind || ''} ${v.id === selected ? 'sel' : ''}`;
+      }
+      entry.marker.setZIndexOffset(v.id === selected ? 1000 : 0);
+      entry.marker.bindTooltip(`Truck ${v.id} · ${activityText(v)}<br>Load ${v.used_capacity}/${v.capacity} · ${timeText(v)}`);
     });
+    for (const [id, entry] of trucks) if (!shownIds.has(id)) { vlayer.removeLayer(entry.marker); trucks.delete(id); }
+    const idleCount = s.vehicles.filter(v => (v.activity || {}).kind === 'idle').length;
+    if (idleCount && filter !== 'idle') L.marker(cl(s.depot), {interactive: false, icon: L.divIcon({className: '', iconSize: [64, 20], iconAnchor: [-12, 22],
+      html: `<div class="idle-badge">${idleCount} idle</div>`})}).addTo(llayer);
     L.marker(cl(s.depot), {icon: L.divIcon({className: '', html: '<div class="vmark" style="transform:rotate(45deg);background:#fff"></div>', iconSize: [16, 16], iconAnchor: [8, 8]})})
       .bindTooltip(`Depot · closes at ${data.max_time}`).addTo(llayer);
 
@@ -287,13 +359,13 @@
         marker: {size: 24, color: 'rgba(0,0,0,0)', line: {width: 1.5, color: '#e5604d'}}, showlegend: false});
     }
 
-    const shown = s.vehicles.filter(v => filter === 'all' || group(v.status) === filter);
+    const shown = s.vehicles.filter(v => (filter === 'all' || group(v.status) === filter) && onMap(v));
     const sel = shown.find(v => v.id === selected);
     if (sel) traces.push({x: [sel.x], y: [sel.y], type: 'scatter', mode: 'markers', hoverinfo: 'skip', showlegend: false,
       marker: {size: 40, color: 'rgba(206,222,98,.22)'}});
-    traces.push({x: shown.map(v => v.x), y: shown.map(v => v.y), type: 'scatter', mode: 'markers', name: 'vehicles',
+    traces.push({x: shown.map(v => v.x), y: shown.map(v => v.y), type: 'scatter', mode: 'markers+text', name: 'vehicles', text: shown.map(v => String(v.id)), textposition: 'middle center', textfont: {size: 10, color: '#040404'},
       customdata: shown.map(v => [v.id, v.status, v.used_capacity, v.capacity]),
-      marker: {size: 14, symbol: shown.map(v => v.status === 'broken' ? 'x' : 'square'),
+      marker: {size: 22, symbol: shown.map(v => v.status === 'broken' ? 'x' : 'square'),
         color: shown.map(v => v.status === 'broken' ? '#e5604d' : v.id === selected ? ACCENT : '#f4f4f4'), line: {width: 1.5, color: '#040404'}},
       hovertemplate: 'Vehicle %{customdata[0]} · %{customdata[1]}<br>Load %{customdata[2]}/%{customdata[3]}<extra></extra>', showlegend: false});
     traces.push({x: [s.depot.x], y: [s.depot.y], type: 'scatter', mode: 'markers+text', text: ['DEPOT'], textposition: 'bottom center',
@@ -334,7 +406,7 @@
 
   function renderCard() {
     const card = $('vcard'), v = data && vehicleById(selected);
-    if (!v) { card.hidden = true; return; }
+    if (!v || !cardOpen) { card.hidden = true; return; }
     const route = current().routes.find(r => r.vehicle_id === selected);
     const remaining = route ? routeLength(route, 'future') : 0;
     const total = v.served_count + v.pending_count;
@@ -352,6 +424,7 @@
         <button class="vc-x" id="vc-close" aria-label="Close">×</button></div>
       <div class="vc-route"><div class="vc-row"><b>Depot → ${total} stop${total === 1 ? '' : 's'}</b><span>${done}% done</span></div>
         <div class="bar"><span style="width:${done}%"></span></div>
+        <div class="vc-row"><span class="muted">Now</span><span>${activityText(v)}</span></div>
         <div class="vc-row"><span class="muted">${v.pending_count} pending</span><span>${fmt(remaining)} <span class="muted">distance remaining</span></span></div></div>
       <div class="vc-gauges">
         <div class="gauge"><span class="muted small">Load</span><b>${loadPct}%</b><div class="bar ${loadPct > 90 ? 'red' : ''}"><span style="width:${loadPct}%"></span></div><span class="small muted">${v.used_capacity}/${v.capacity}</span></div>
@@ -359,7 +432,7 @@
       <div class="alert ${alert[0]}">${alert[1]}</div>
       <div class="row-gap" style="margin-top:10px"><button class="btn ghost" id="vc-detail">Details</button>
         <button class="btn danger" id="vc-break" ${v.status === 'broken' || t < data.committed_time ? 'disabled' : ''}>Take offline</button></div>`;
-    $('vc-close').onclick = () => { card.hidden = true; };
+    $('vc-close').onclick = () => { cardOpen = false; card.hidden = true; };
     $('vc-detail').onclick = () => showView('vehicle');
     $('vc-break').onclick = () => breakVehicle(selected);
   }
@@ -431,7 +504,7 @@
     view = name;
     ['ops', 'vehicle', 'compare'].forEach(v => { $('view-' + v).hidden = v !== name; });
     document.querySelectorAll('.nav').forEach(b => b.classList.toggle('active', b.dataset.view === name));
-    if (data) { render(); if (name === 'ops') setTimeout(() => Plotly.Plots.resize($('map')), 0); }
+    if (data) { render(); if (name === 'ops') setTimeout(() => { if (mode === 'street' && lmap) lmap.invalidateSize(); else if (!$('map').hidden) Plotly.Plots.resize($('map')); }, 0); }
   }
 
   async function post(path, body, label) {
@@ -462,11 +535,11 @@
   }
   const breakVehicle = id => sendEvent({event_type: 'breakdown', vehicle_id: Number(id)}, `Vehicle ${id} taken offline at t=${fmt(t, 0)}. All three strategies re-planned.`);
 
-  function stop() { clearInterval(timer); timer = null; $('play').textContent = '▶ Play'; }
+  function stop() { clearInterval(timer); timer = null; $('play').textContent = '▶ Play'; $('lmap').classList.remove('playing'); }
   function togglePlay() {
     if (timer) return stop();
     if (t >= data.max_time) t = 0;
-    $('play').textContent = '⏸ Pause';
+    $('play').textContent = '⏸ Pause'; $('lmap').classList.add('playing');
     timer = setInterval(() => {
       t = Math.min(data.max_time, t + Number($('speed').value));
       $('time-slider').value = t;
@@ -490,6 +563,12 @@
   $('jump-live').onclick = () => fetchState(data.committed_time);
   $('strategy').onchange = () => data && render();
   $('t-routes').onchange = $('t-alerts').onchange = () => data && drawMap();
+  $('fleet-list').onclick = e => {
+    const row = e.target.closest('.trow'); if (!row) return;
+    selected = Number(row.dataset.id); cardOpen = true; render();
+    const entry = trucks.get(selected);
+    if (mode === 'street' && lmap && entry) lmap.flyTo(entry.marker.getLatLng(), Math.max(lmap.getZoom(), 15), {duration: .6});
+  };
   $('filters').onclick = e => {
     const tab = e.target.closest('.tab'); if (!tab) return;
     filter = tab.dataset.f;
@@ -512,7 +591,7 @@
   $('break').onclick = () => breakVehicle($('vehicle-select').value);
   $('vd-break').onclick = () => breakVehicle(selected);
   $('vd-map').onclick = () => showView('ops');
-  const step = d => { const ids = current().vehicles.map(v => v.id); selected = ids[(ids.indexOf(selected) + d + ids.length) % ids.length]; renderVehicle(); };
+  const step = d => { if (!data) return; const ids = current().vehicles.map(v => v.id); selected = ids[(ids.indexOf(selected) + d + ids.length) % ids.length]; renderVehicle(); };
   $('vd-prev').onclick = () => step(-1);
   $('vd-next').onclick = () => step(1);
   $('order-form').onsubmit = e => {

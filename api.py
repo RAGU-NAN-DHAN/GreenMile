@@ -153,10 +153,16 @@ def chart_state(snapshot):
                 f = (t-segment["start"])/(segment["end"]-segment["start"])
                 middle = [a[0]+(b[0]-a[0])*f, a[1]+(b[1]-a[1])*f]
                 past.append([a, middle]); future.append([middle, b])
+        # What the truck is doing right now: its current plan segment (travelling, waiting, servicing) or idle.
+        active = next((sg for sg in vehicle["segments"] if sg["start"] <= t < sg["end"]), None)
+        activity = {"kind": "broken" if vehicle["status"] == "broken" else active["kind"] if active else "idle",
+                    "customer_id": active["customer_id"] if active else None,
+                    "until": active["end"] if active else None}
         routes.append({"vehicle_id": int(key), "past": past, "future": future, "legs": legs})
         vehicles.append({"id": int(key), "x": vehicle["x"], "y": vehicle["y"], **snapped(vehicle["x"], vehicle["y"]),
                          "status": vehicle["status"], "used_capacity": vehicle["used_capacity"],
-                         "capacity": vehicle["capacity"], "pending_count": future_count,
+                         "capacity": vehicle["capacity"], "pending_count": future_count, "activity": activity,
+                         "finish": max((sg["end"] for sg in vehicle["segments"]), default=None),
                          "served_count": len(vehicle["served"]), "distance_travelled": vehicle["distance_travelled"]})
     unassigned = set(snapshot["unassigned_pool"])
     customers = [{**customer, **snapped(customer["x"], customer["y"]), "status": "unassigned" if int(i) in unassigned else snapshot["node_status"][int(i)],

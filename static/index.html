@@ -63,12 +63,14 @@
         </div>
       </div>
 
+      <div class="ops-grid">
       <div class="map-card">
         <div class="map-wrap" id="map-wrap">
           <div id="map"></div>
           <div id="lmap" hidden></div>
           <div id="map-note" hidden>Illustrative placement of Solomon x/y data on a street map · distances are in Solomon units</div>
           <div id="map-empty"><h3>Your fleet starts here</h3><p>Load a dataset to see the depot, customers and live trucks.</p></div>
+          <div class="clock" id="clock" aria-live="off">⏱ <b id="clock-t">0</b> <span class="muted">/ <span id="clock-max">–</span></span></div>
           <aside class="vcard" id="vcard" hidden></aside>
           <div class="compass" aria-hidden="true"><svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="46" class="ring"/><circle cx="50" cy="50" r="30" class="inner"/><text x="50" y="57" text-anchor="middle" class="nw">N</text><path d="M50 8 L56 22 L44 22 Z" class="needle"/></svg></div>
           <div class="map-tools">
@@ -87,6 +89,13 @@
           <button id="jump-live" class="btn ghost" hidden>Latest →</button>
         </div>
         <div class="hint"><span>Click a truck to inspect it · ⌖ then click the map to place a new order</span><span id="timeline-status">Viewing the initial plan</span></div>
+      </div>
+
+      <aside class="card fleet" aria-label="Fleet">
+        <header><div><h2>Fleet</h2><span class="muted small" id="fleet-sub">–</span></div><span class="pill" id="fleet-count">0 trucks</span></header>
+        <div class="fleet-sum" id="fleet-sum"></div>
+        <div id="fleet-list" class="fleet-list"><p class="muted small pad">Load a dataset to see the trucks.</p></div>
+      </aside>
       </div>
 
       <div class="grid-2">
