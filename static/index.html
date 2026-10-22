@@ -71,7 +71,7 @@
           <div id="lmap" hidden></div>
           <div id="map-note" hidden>Illustrative placement of Solomon x/y data on a street map · distances are in Solomon units</div>
           <div id="map-empty"><h3>Your fleet starts here</h3><p>Load a dataset to see the depot, customers and live trucks.</p></div>
-          <div class="clock" id="clock" aria-live="off">⏱ <b id="clock-t">0</b> <span class="muted">/ <span id="clock-max">–</span></span></div>
+          <div class="clock" id="clock" aria-live="off">⏱ <b id="clock-t">0</b> <span class="muted">/ <span id="clock-max">–</span> min</span></div>
           <aside class="vcard" id="vcard" hidden></aside>
           <div class="compass" aria-hidden="true"><svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="46" class="ring"/><circle cx="50" cy="50" r="30" class="inner"/><text x="50" y="57" text-anchor="middle" class="nw">N</text><path d="M50 8 L56 22 L44 22 Z" class="needle"/></svg></div>
           <div class="map-tools">
@@ -84,9 +84,9 @@
         </div>
         <div class="playbar">
           <button id="play" class="btn" disabled>▶ Play</button>
-          <div class="time"><div><span class="muted">Simulation time</span><b><span id="time-value">0</span><span class="muted"> / <span id="time-max">–</span></span></b></div>
+          <div class="time"><div><span class="muted">Simulation time</span><b><span id="time-value">0</span><span class="muted"> / <span id="time-max">–</span> min</span></b></div>
             <input id="time-slider" type="range" min="0" max="230" step="0.1" value="0" disabled></div>
-          <label class="sel-inline">Speed <select id="speed"><option value="1" selected>Real-time</option><option value="2">2×</option><option value="4">4×</option><option value="10">10×</option><option value="25">25×</option></select></label>
+          <label class="sel-inline">Speed <select id="speed"><option value="1" selected>1 min/s</option><option value="2">2 min/s</option><option value="4">4 min/s</option><option value="10">10 min/s</option><option value="25">25 min/s</option></select></label>
           <button id="jump-live" class="btn ghost" hidden>Latest →</button>
         </div>
         <div class="hint"><span>Click a truck to inspect it · ⌖ then click the map to place a new order</span><span id="timeline-status">Viewing the initial plan</span></div>
@@ -115,9 +115,9 @@
                 <label>X<input id="order-x" type="number" step="1" value="35" required></label>
                 <label>Y<input id="order-y" type="number" step="1" value="35" required></label>
                 <label>Demand<input id="order-demand" type="number" min="0" step="1" value="10" required></label>
-                <label>Service<input id="order-service" type="number" min="0" step="1" value="10" required></label>
-                <label>Ready<input id="order-ready" type="number" min="0" step="1" value="0" required></label>
-                <label>Due<input id="order-due" type="number" min="0" step="1" value="230" required></label>
+                <label>Service (min)<input id="order-service" type="number" min="0" step="1" value="10" required></label>
+                <label>Ready (min)<input id="order-ready" type="number" min="0" step="1" value="0" required></label>
+                <label>Due (min)<input id="order-due" type="number" min="0" step="1" value="230" required></label>
               </div>
               <button id="add-order" class="btn primary wide" type="submit">Add order</button>
             </fieldset>

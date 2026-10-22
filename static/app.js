@@ -56,6 +56,8 @@
     $('busy-label').textContent = label;
   }
   const fmt = (n, d = 1) => Number(n).toFixed(d);
+  // Time is in minutes (Solomon time units read as minutes). Distance is km in road mode, Solomon units otherwise.
+  const dist = u => data && data.routing === 'road' ? `${(u * data.geo.metres_per_unit / 1000).toFixed(1)} km` : `${fmt(u)} units`;
   const group = status => status === 'broken' ? 'broken' : status === 'idle' ? 'idle' : 'active';
   const current = () => data.strategies[$('strategy').value];
   const vehicleById = id => current().vehicles.find(v => v.id === id);
@@ -94,10 +96,10 @@
     const s = current(), k = data.kpis[$('strategy').value];
     const live = t >= data.committed_time;
 
-    $('subtitle').textContent = `${data.dataset} · ${k.total_orders} orders · t = ${fmt(t, 0)} of ${data.max_time}`;
+    $('subtitle').textContent = `${data.dataset} · ${k.total_orders} orders · ${fmt(t, 0)} of ${data.max_time} min`;
     $('time-value').textContent = fmt(t, 0);
     $('time-max').textContent = data.max_time;
-    $('timeline-status').textContent = live ? 'Viewing the latest state' : `Historical view · latest event at t=${fmt(data.committed_time, 0)}`;
+    $('timeline-status').textContent = live ? 'Viewing the latest state' : `Historical view · latest event at ${fmt(data.committed_time, 0)} min`;
     $('jump-live').hidden = live;
 
     // KPI chips
@@ -106,7 +108,7 @@
     $('c-served').textContent = `${k.served_orders}/${k.total_orders}`;
     $('c-late').textContent = k.late_deliveries;
     $('c-drop').textContent = k.dropped_orders;
-    $('c-dist').textContent = fmt(k.distance);
+    $('c-dist').textContent = dist(k.distance);
     $('c-solve').textContent = `${fmt(k.solve_time_sec, 2)}s`;
 
     // filter counts
@@ -143,14 +145,14 @@
     const a = v.activity || {kind: v.status};
     const order = a.customer_id ? `ORD-${a.customer_id}` : '';
     switch (a.kind) {
-      case 'travelling': return a.customer_id === 0 ? `Returning to depot · arrives in ${left(a.until)}` : `→ ${order} · ETA in ${left(a.until)}`;
-      case 'servicing': return `Servicing ${order} · ${left(a.until)} left`;
-      case 'waiting': return `Waiting at ${order} · starts in ${left(a.until)}`;
+      case 'travelling': return a.customer_id === 0 ? `Returning to depot · arrives in ${left(a.until)} min` : `→ ${order} · ETA in ${left(a.until)} min`;
+      case 'servicing': return `Servicing ${order} · ${left(a.until)} min left`;
+      case 'waiting': return `Waiting at ${order} · starts in ${left(a.until)} min`;
       case 'broken': return 'Offline · orders reassigned';
       default: return v.served_count && !v.pending_count ? 'Finished for the day' : 'Idle at depot';
     }
   }
-  const timeText = v => v.status === 'broken' ? 'Broke down' : v.finish == null ? 'No route' : v.finish <= t ? `Back at depot (t=${fmt(v.finish, 0)})` : `Back at depot by t=${fmt(v.finish, 0)}`;
+  const timeText = v => v.status === 'broken' ? 'Broke down' : v.finish == null ? 'No route' : v.finish <= t ? `Back at depot (${fmt(v.finish, 0)} min)` : `Back at depot at ${fmt(v.finish, 0)} min`;
 
   function renderFleet() {
     const s = current();
@@ -176,7 +178,7 @@
     $('event-log').innerHTML = data.events.length ? data.events.map(e => {
       const r = e.strategies[name];
       const title = e.type === 'break_vehicle' ? `Vehicle ${e.payload.vehicle_id} taken offline` : `New order at (${e.payload.x}, ${e.payload.y})`;
-      return `<li><span class="ev-t">t=${fmt(e.time, 0)}</span>${title}<small>${STRATEGY_NAMES[name]}: unassigned ${r.before.dropped_orders} → ${r.after.dropped_orders} · distance ${r.delta.distance >= 0 ? '+' : ''}${fmt(r.delta.distance)} · ${r.status}</small></li>`;
+      return `<li><span class="ev-t">${fmt(e.time, 0)} min</span>${title}<small>${STRATEGY_NAMES[name]}: unassigned ${r.before.dropped_orders} → ${r.after.dropped_orders} · distance ${r.delta.distance >= 0 ? '+' : ''}${dist(r.delta.distance)} · ${r.status}</small></li>`;
     }).join('') : '<li class="muted">No events yet.</li>';
   }
 
@@ -286,7 +288,7 @@
     if (data.routing !== 'road') $('c-road').textContent = legsTotal ? `${(roadMetres / 1000).toFixed(1)} km${legsLoaded < legsTotal ? '…' : ''}` : '–';
     s.customers.forEach(c => {
       L.circleMarker(cl(c), {radius: c.status === 'servicing' ? 8 : 6, color: '#040404', weight: 1, fillColor: STATUS_COLOURS[c.status], fillOpacity: 1})
-        .bindTooltip(`Order ${c.id} · ${c.status}<br>Demand ${c.demand} · window ${c.ready}–${c.due}<br>Vehicle ${c.vehicle_id ?? 'unassigned'}`).addTo(llayer);
+        .bindTooltip(`Order ${c.id} · ${c.status}<br>Demand ${c.demand} · window ${c.ready}–${c.due} min<br>Vehicle ${c.vehicle_id ?? 'unassigned'}`).addTo(llayer);
       if (showAlerts && c.status === 'unassigned') L.circleMarker(cl(c), {radius: 13, color: '#e5604d', weight: 2, fill: false, interactive: false}).addTo(llayer);
     });
     if (trucksSession !== data.session_id) { vlayer.clearLayers(); trucks.clear(); trucksSession = data.session_id; }
@@ -319,7 +321,7 @@
     if (idleCount && filter !== 'idle') L.marker(cl(s.depot), {interactive: false, icon: L.divIcon({className: '', iconSize: [64, 20], iconAnchor: [-12, 22],
       html: `<div class="idle-badge">${idleCount} idle</div>`})}).addTo(llayer);
     L.marker(cl(s.depot), {icon: L.divIcon({className: '', html: '<div class="vmark" style="transform:rotate(45deg);background:#fff"></div>', iconSize: [16, 16], iconAnchor: [8, 8]})})
-      .bindTooltip(`Depot · closes at ${data.max_time}`).addTo(llayer);
+      .bindTooltip(`Depot · closes at ${data.max_time} min`).addTo(llayer);
 
     const key = `${data.session_id}-${viewRev}`;
     lmap.invalidateSize();
@@ -352,7 +354,7 @@
       traces.push({x: list.map(c => c.x), y: list.map(c => c.y), type: 'scatter', mode: 'markers+text',
         text: list.map(c => String(c.id)), textposition: 'top center', textfont: {size: 9, color: '#9e9f9f'},
         marker: {size: status === 'servicing' ? 12 : 9, color: STATUS_COLOURS[status], symbol: status === 'unassigned' ? 'x' : 'circle', line: {width: 1, color: '#040404'}},
-        hovertemplate: list.map(c => `Order ${c.id} · ${status}<br>Demand ${c.demand} · window ${c.ready}–${c.due}<br>Vehicle ${c.vehicle_id ?? 'unassigned'}<extra></extra>`),
+        hovertemplate: list.map(c => `Order ${c.id} · ${status}<br>Demand ${c.demand} · window ${c.ready}–${c.due} min<br>Vehicle ${c.vehicle_id ?? 'unassigned'}<extra></extra>`),
         showlegend: false});
     }
 
@@ -373,7 +375,7 @@
       hovertemplate: 'Vehicle %{customdata[0]} · %{customdata[1]}<br>Load %{customdata[2]}/%{customdata[3]}<extra></extra>', showlegend: false});
     traces.push({x: [s.depot.x], y: [s.depot.y], type: 'scatter', mode: 'markers+text', text: ['DEPOT'], textposition: 'bottom center',
       textfont: {size: 9, color: '#f4f4f4'}, marker: {size: 15, symbol: 'diamond', color: '#f4f4f4', line: {width: 2, color: '#040404'}},
-      hovertemplate: `Depot · closes at ${data.max_time}<extra></extra>`, showlegend: false});
+      hovertemplate: `Depot · closes at ${data.max_time} min<extra></extra>`, showlegend: false});
 
     const xs = s.customers.map(c => c.x).concat(s.depot.x), ys = s.customers.map(c => c.y).concat(s.depot.y);
     const axis = (title, lo, hi, extra = {}) => ({title: {text: title, font: {size: 9, color: '#5c5c5b'}}, range: [lo - 6, hi + 6], showgrid: false, zeroline: false, tickfont: {size: 9, color: '#5c5c5b'}, linecolor: '#2a2a29', ...extra});
@@ -419,7 +421,7 @@
     const orders = current().customers.filter(c => c.vehicle_id === selected && c.status !== 'served');
     const urgent = orders.filter(c => c.due - t < 20 && c.due >= t).sort((a, b) => a.due - b.due)[0];
     const alert = v.status === 'broken' ? ['bad', `Offline — remaining orders were reassigned to other vehicles.`]
-      : urgent ? ['', `<b>Window closing:</b> order ${urgent.id} is due at t=${urgent.due}.`]
+      : urgent ? ['', `<b>Window closing:</b> order ${urgent.id} is due at ${urgent.due} min.`]
       : ['good', 'On schedule — no time windows at risk.'];
     card.hidden = false;
     card.innerHTML = `
@@ -428,10 +430,10 @@
       <div class="vc-route"><div class="vc-row"><b>Depot → ${total} stop${total === 1 ? '' : 's'}</b><span>${done}% done</span></div>
         <div class="bar"><span style="width:${done}%"></span></div>
         <div class="vc-row"><span class="muted">Now</span><span>${activityText(v)}</span></div>
-        <div class="vc-row"><span class="muted">${v.pending_count} pending</span><span>${fmt(remaining)} <span class="muted">distance remaining</span></span></div></div>
+        <div class="vc-row"><span class="muted">${v.pending_count} pending</span><span>${dist(remaining)} <span class="muted">remaining</span></span></div></div>
       <div class="vc-gauges">
         <div class="gauge"><span class="muted small">Load</span><b>${loadPct}%</b><div class="bar ${loadPct > 90 ? 'red' : ''}"><span style="width:${loadPct}%"></span></div><span class="small muted">${v.used_capacity}/${v.capacity}</span></div>
-        <div class="gauge"><span class="muted small">Day elapsed</span><b>${timePct}%</b><div class="bar"><span style="width:${timePct}%"></span></div><span class="small muted">t ${fmt(t, 0)}/${data.max_time}</span></div></div>
+        <div class="gauge"><span class="muted small">Day elapsed</span><b>${timePct}%</b><div class="bar"><span style="width:${timePct}%"></span></div><span class="small muted">${fmt(t, 0)} / ${data.max_time} min</span></div></div>
       <div class="alert ${alert[0]}">${alert[1]}</div>
       <div class="row-gap" style="margin-top:10px"><button class="btn ghost" id="vc-detail">Details</button>
         <button class="btn danger" id="vc-break" ${v.status === 'broken' || t < data.committed_time ? 'disabled' : ''}>Take offline</button></div>`;
@@ -471,22 +473,22 @@
     $('pk-sub').textContent = `${orders.length} orders · total demand ${orders.reduce((n, c) => n + c.demand, 0)}`;
     $('pk-list').innerHTML = orders.map(c => `<div class="pk ${c.id === selectedOrder ? 'sel' : ''}" data-id="${c.id}">
         <div class="pk-top"><b>ORD-${c.id}</b>${pill(c.status, statusKind(c.status))}</div>
-        <div class="pk-tags">${pill('demand ' + c.demand)}${pill('ready ' + c.ready)}${pill('due ' + c.due)}</div>
-        ${c.id === selectedOrder ? `<div class="pk-more"><span>Location<b>(${c.x}, ${c.y})</b></span><span>Window<b>${c.ready}–${c.due}</b></span><span>Assigned to<b>Vehicle ${c.vehicle_id}</b></span><span>Status<b>${c.status}</b></span></div>` : ''}</div>`).join('');
+        <div class="pk-tags">${pill('demand ' + c.demand)}${pill('ready ' + c.ready + ' min')}${pill('due ' + c.due + ' min')}</div>
+        ${c.id === selectedOrder ? `<div class="pk-more"><span>Location<b>(${c.x}, ${c.y})</b></span><span>Window<b>${c.ready}–${c.due} min</b></span><span>Assigned to<b>Vehicle ${c.vehicle_id}</b></span><span>Status<b>${c.status}</b></span></div>` : ''}</div>`).join('');
     document.querySelectorAll('#tiles .tile, #pk-list .pk').forEach(el => el.onclick = () => { selectedOrder = Number(el.dataset.id); renderVehicle(); });
 
     const setGauge = (id, pct, label) => { $(id).setAttribute('stroke-dasharray', `${Math.min(100, pct)} 100`); $(id + '-t').textContent = label; };
     setGauge('g-load', loadPct, `${loadPct}%`);
-    setGauge('g-time', timePct, `${fmt(t, 0)} / ${data.max_time}`);
+    setGauge('g-time', timePct, `${fmt(t, 0)} / ${data.max_time} min`);
     const urgent = orders.filter(c => c.status !== 'served' && c.due >= t && c.due - t < 20).sort((a, b) => a.due - b.due)[0];
     const alert = $('vd-alert');
     alert.className = 'alert' + (v.status === 'broken' ? ' bad' : urgent ? '' : ' good');
     alert.innerHTML = v.status === 'broken' ? 'Offline: remaining orders were reassigned.'
-      : urgent ? `<b>Window closing:</b> ORD-${urgent.id} is due at t=${urgent.due}.` : 'On schedule: no time windows at risk.';
+      : urgent ? `<b>Window closing:</b> ORD-${urgent.id} is due at ${urgent.due} min.` : 'On schedule: no time windows at risk.';
     $('vd-stops').textContent = v.served_count;
     $('vd-pending').textContent = v.pending_count;
-    $('vd-dist').textContent = fmt(v.distance_travelled);
-    $('vd-remain').textContent = fmt(route ? routeLength(route, 'future') : 0);
+    $('vd-dist').textContent = dist(v.distance_travelled);
+    $('vd-remain').textContent = dist(route ? routeLength(route, 'future') : 0);
     $('vd-break').disabled = v.status === 'broken' || t < data.committed_time;
   }
 
@@ -497,9 +499,9 @@
     $('cards').innerHTML = names.map(n => { const k = data.kpis[n];
       return `<div class="kpi-card ${n === best ? 'best' : ''}"><h3>${STRATEGY_NAMES[n]} ${n === best ? pill('best', 'ok') : ''}</h3><dl>
         <dt>Delivered</dt><dd>${k.served_orders}/${k.total_orders}</dd><dt>Unassigned</dt><dd>${k.dropped_orders}</dd>
-        <dt>Late</dt><dd>${k.late_deliveries}</dd><dt>Distance</dt><dd>${fmt(k.distance)}</dd><dt>Recovery time</dt><dd>${fmt(k.solve_time_sec, 3)}s</dd></dl></div>`; }).join('');
+        <dt>Late</dt><dd>${k.late_deliveries}</dd><dt>Distance</dt><dd>${dist(k.distance)}</dd><dt>Recovery time</dt><dd>${fmt(k.solve_time_sec, 3)}s</dd></dl></div>`; }).join('');
     $('comparison-body').innerHTML = names.map(n => { const k = data.kpis[n];
-      return `<tr class="${n === $('strategy').value ? 'selected' : ''}"><td>${STRATEGY_NAMES[n]}</td><td>${k.served_orders}/${k.total_orders}</td><td>${fmt(k.distance)}</td><td>${k.dropped_orders}</td><td>${k.late_deliveries}</td><td>${fmt(k.solve_time_sec, 3)}s</td></tr>`; }).join('');
+      return `<tr class="${n === $('strategy').value ? 'selected' : ''}"><td>${STRATEGY_NAMES[n]}</td><td>${k.served_orders}/${k.total_orders}</td><td>${dist(k.distance)}</td><td>${k.dropped_orders}</td><td>${k.late_deliveries}</td><td>${fmt(k.solve_time_sec, 3)}s</td></tr>`; }).join('');
   }
 
   // ---------- actions ----------
@@ -523,7 +525,7 @@
       if (anchor) { body.depot_lat = anchor.lat; body.depot_lng = anchor.lng; }
       const next = await post('/load', body, $('routing').value === 'road' ? 'Fetching road distances and planning…' : 'Planning routes…');
       selectedOrder = null; viewRev++;
-      say(`${next.dataset} loaded. Press Play, or move the slider to t=90 and take a vehicle offline.`);
+      say(`${next.dataset} loaded. Press Play, or move the slider to 90 min and take a vehicle offline.`);
       await fetchState(0);
     } catch (e) { say(e.message, true); }
   }
@@ -536,10 +538,10 @@
       say(okMessage);
     } catch (e) { say(e.message, true); }
   }
-  const breakVehicle = id => sendEvent({event_type: 'breakdown', vehicle_id: Number(id)}, `Vehicle ${id} taken offline at t=${fmt(t, 0)}. All three strategies re-planned.`);
+  const breakVehicle = id => sendEvent({event_type: 'breakdown', vehicle_id: Number(id)}, `Vehicle ${id} taken offline at ${fmt(t, 0)} min. All three strategies re-planned.`);
 
   function stop() { clearInterval(timer); timer = null; $('play').textContent = '▶ Play'; $('lmap').classList.remove('playing'); }
-  // Speed is simulation units per real second: "Real-time" = 1 unit/s, so a 230-unit day takes about 4 minutes.
+  // Speed is simulated minutes per real second: the default 1 min/s plays a 230-minute day in about 4 minutes.
   // Time follows the wall clock (not the tick count), and a tick is skipped while the previous state request is still in flight.
   function togglePlay() {
     if (timer) return stop();
@@ -607,7 +609,7 @@
     e.preventDefault();
     sendEvent({event_type: 'new_order', x: Number($('order-x').value), y: Number($('order-y').value), demand: Number($('order-demand').value),
       ready: Number($('order-ready').value), due: Number($('order-due').value), service: Number($('order-service').value)},
-      `New order added at t=${fmt(t, 0)}. All three strategies re-planned.`);
+      `New order added at ${fmt(t, 0)} min. All three strategies re-planned.`);
   };
 
   api('/state?t=0').then(async first => {

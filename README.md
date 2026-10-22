@@ -401,3 +401,13 @@ In road mode every customer, vehicle and the depot is snapped to the nearest dri
 (OSRM returns the snapped point with each distance table), so nothing is drawn in a lake or
 off-road. Snapping can move a point by a few hundred metres (R101 at VIT: median 67 m, max 363 m);
 distances are measured between the snapped points.
+
+## Units
+
+- **Time** is shown in minutes: the Solomon time units are read as minutes (a depot window of
+  230 means a 230-minute day). Play speed is simulated minutes per real second (default 1 min/s).
+- **Distance** is shown in km in road mode and in Solomon units in straight-line mode.
+- In road mode, travel time equals road distance in calibrated units (about 134 m per minute for
+  R101 at VIT), which implies a slow average speed (about 8 km/h) because the Solomon windows are
+  tight. It is a modelling choice, not a measured speed; calibrating to a realistic speed (for
+  example 25 km/h) would loosen the time windows and change the plans.
