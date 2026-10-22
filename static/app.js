@@ -619,9 +619,16 @@
       `New order added at ${fmt(t, 0)} min. All three strategies re-planned.`);
   };
 
+  // Optional deep link, handy for screenshots and demos: ?t=60&truck=4&view=compare&map=plain&clean=1
+  const params = new URLSearchParams(location.search);
+  if (params.get('clean')) document.body.classList.add('clean');
+  if (params.get('map') === 'plain') mode = 'plain';
   api('/state?t=0').then(async first => {
-    if (first.committed_time > 0) first = await api(`/state?t=${first.committed_time}`);
+    const wanted = params.has('t') ? Number(params.get('t')) : first.committed_time;
+    if (wanted > 0) first = await api(`/state?t=${wanted}`);
+    if (params.has('truck')) { selected = Number(params.get('truck')); cardOpen = true; }
     accept(first);
+    if (['vehicle', 'compare'].includes(params.get('view'))) showView(params.get('view'));
     $('order-ready').value = Math.round(first.time); $('order-due').value = first.max_time;
     say(`${first.dataset} is loaded. Move the slider or press Play.`);
   }).catch(() => {});
