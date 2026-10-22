@@ -19,6 +19,7 @@
   </nav>
 
   <div class="content">
+    <div class="brandbar"><span class="brandmark">✚</span><div><b>GreenMile</b><small>Intelligent last-mile routing &amp; live fleet simulation</small></div></div>
     <header class="chips" id="chips">
       <span class="chip">Active <b id="c-active">–</b></span>
       <span class="chip">Delivered <b id="c-served">–</b></span>
@@ -84,8 +85,8 @@
         <div class="playbar">
           <button id="play" class="btn" disabled>▶ Play</button>
           <div class="time"><div><span class="muted">Simulation time</span><b><span id="time-value">0</span><span class="muted"> / <span id="time-max">–</span></span></b></div>
-            <input id="time-slider" type="range" min="0" max="230" step="1" value="0" disabled></div>
-          <label class="sel-inline">Speed <select id="speed"><option value="1">1×</option><option value="2" selected>2×</option><option value="5">5×</option></select></label>
+            <input id="time-slider" type="range" min="0" max="230" step="0.1" value="0" disabled></div>
+          <label class="sel-inline">Speed <select id="speed"><option value="1" selected>Real-time</option><option value="2">2×</option><option value="4">4×</option><option value="10">10×</option><option value="25">25×</option></select></label>
           <button id="jump-live" class="btn ghost" hidden>Latest →</button>
         </div>
         <div class="hint"><span>Click a truck to inspect it · ⌖ then click the map to place a new order</span><span id="timeline-status">Viewing the initial plan</span></div>

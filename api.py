@@ -16,7 +16,7 @@ from parser import find_dataset, load_solomon
 from solver import SolveError, solve_static
 
 ROOT = Path(__file__).resolve().parent
-app = FastAPI(title="Last-Mile Router", version="5.0")
+app = FastAPI(title="GreenMile", version="5.0")
 lock = RLock()
 current: Comparison | None = None
 session_id = ""

@@ -247,6 +247,9 @@
         {maxZoom: 19, attribution: '© OpenStreetMap contributors'}).addTo(lmap);
       llayer = L.layerGroup().addTo(lmap);
       vlayer = L.layerGroup().addTo(lmap);
+      // Truck badges shrink as the map zooms out so they do not pile up: full badge, smaller badge, then a numbered dot.
+      const sizeClass = () => { const z = lmap.getZoom(); $('lmap').classList.remove('z-low', 'z-mid'); if (z <= 13) $('lmap').classList.add('z-low'); else if (z <= 15) $('lmap').classList.add('z-mid'); };
+      lmap.on('zoomend', sizeClass); sizeClass();
       lmap.on('click', ev => {
         if (settingDepot) { settingDepot = false; $('depot-pin').classList.remove('active'); anchor = {lat: ev.latlng.lat, lng: ev.latlng.lng}; loadDataset(); return; }
         if (!placing) return;
@@ -536,14 +539,20 @@
   const breakVehicle = id => sendEvent({event_type: 'breakdown', vehicle_id: Number(id)}, `Vehicle ${id} taken offline at t=${fmt(t, 0)}. All three strategies re-planned.`);
 
   function stop() { clearInterval(timer); timer = null; $('play').textContent = '▶ Play'; $('lmap').classList.remove('playing'); }
+  // Speed is simulation units per real second: "Real-time" = 1 unit/s, so a 230-unit day takes about 4 minutes.
+  // Time follows the wall clock (not the tick count), and a tick is skipped while the previous state request is still in flight.
   function togglePlay() {
     if (timer) return stop();
     if (t >= data.max_time) t = 0;
     $('play').textContent = '⏸ Pause'; $('lmap').classList.add('playing');
+    let last = performance.now(), fetching = false;
     timer = setInterval(() => {
-      t = Math.min(data.max_time, t + Number($('speed').value));
+      const now = performance.now();
+      t = Math.min(data.max_time, t + Number($('speed').value) * (now - last) / 1000);
+      last = now;
       $('time-slider').value = t;
-      fetchState(t);
+      $('clock-t').textContent = fmt(t, 0);
+      if (!fetching) { fetching = true; fetchState(t).finally(() => { fetching = false; }); }
       if (t >= data.max_time) stop();
     }, 250);
   }
