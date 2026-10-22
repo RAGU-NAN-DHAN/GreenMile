@@ -324,8 +324,10 @@ select option:checked,select option:hover{background-color:#3a3d18;color:#f4f4f4
 .an-card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:16px 18px}
 .an-card b{display:block;font-size:28px;letter-spacing:-.5px;font-variant-numeric:tabular-nums}.an-card span{color:var(--muted);font-size:12px}
 .an-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
-.chart{height:310px;padding:6px 8px}
+.chart{height:345px;padding:6px 8px}
 @media(max-width:1100px){.ord-grid,.an-grid{grid-template-columns:1fr}.an-cards{grid-template-columns:1fr 1fr}}
 
 #book-map .leaflet-tile-pane{filter:invert(1) hue-rotate(180deg) brightness(.75) contrast(.9) saturate(.45)}
 #book-map .leaflet-control-zoom a{background:#181817;color:#f4f4f4;border-color:#2a2a29}
+
+.chart.short{height:230px}

@@ -4,11 +4,11 @@
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
   <title>GreenMile — Operations</title>
   <link rel="icon" type="image/svg+xml" href="/static/logo.svg">
-  <link rel="stylesheet" href="/static/style.css?v=10">
+  <link rel="stylesheet" href="/static/style.css?v=13">
   <link rel="stylesheet" href="/static/vendor/leaflet/leaflet.css">
   <script defer src="/static/vendor/plotly.min.js"></script>
   <script defer src="/static/vendor/leaflet/leaflet.js"></script>
-  <script defer src="/static/app.js?v=10"></script>
+  <script defer src="/static/app.js?v=13"></script>
 </head>
 <body>
 <div class="shell">
@@ -215,7 +215,7 @@
         <section class="card"><header><h2>Orders delivered over the day</h2></header><div id="ch-served" class="chart"></div></section>
         <section class="card"><header><h2>Orders left unassigned</h2></header><div id="ch-dropped" class="chart"></div></section>
         <section class="card"><header><h2>Fleet activity</h2><span class="muted small" id="an-strategy">–</span></header><div id="ch-fleet" class="chart"></div></section>
-        <section class="card"><header><h2>Distance by strategy</h2></header><div id="ch-trade" class="chart"></div></section>
+        <section class="card"><header><h2>Orders delivered by each strategy</h2><span class="muted small">more green is better</span></header><div id="ch-trade" class="chart short"></div></section>
       </div>
       <section class="card"><header><h2>Event history</h2></header><div class="table-scroll"><table><thead><tr><th>Time</th><th>Event</th><th>Do nothing</th><th>Cheapest insertion</th><th>OR-Tools re-plan</th></tr></thead><tbody id="an-events"></tbody></table></div></section>
     </section>

@@ -610,7 +610,7 @@
       .map(([v, l]) => `<div class="an-card"><b>${v}</b><span>${l}</span></div>`).join('');
 
     const marks = ts.events.map(e => ({type: 'line', x0: e.time, x1: e.time, y0: 0, y1: 1, yref: 'paper', line: {color: '#e5604d', width: 2, dash: 'dot'}}));
-    const notes = ts.events.map(e => ({x: e.time, y: 1, yref: 'paper', text: e.type === 'break_vehicle' ? `Truck ${e.payload.vehicle_id} offline` : 'New order', showarrow: false, xanchor: 'left', yanchor: 'bottom', font: {color: '#e5604d', size: 11}}));
+    const notes = ts.events.map(e => ({x: e.time, y: 0.97, yref: 'paper', text: e.type === 'break_vehicle' ? `Truck ${e.payload.vehicle_id} offline` : 'New order', showarrow: false, xanchor: 'left', xshift: 4, yanchor: 'top', font: {color: '#e5604d', size: 11}}));
     const lines = field => names.map(n => ({x: ts.times, y: ts.series[n][field], name: STRATEGY_NAMES[n], mode: 'lines', line: {color: STRATEGY_COLOURS[n], width: 3, shape: 'hv'}}));
     Plotly.react('ch-served', lines('served'), plotLayout({shapes: marks, annotations: notes, yaxis: {title: {text: 'Orders'}, gridcolor: '#232326', zeroline: false}}), plotConfig);
     Plotly.react('ch-dropped', lines('dropped'), plotLayout({shapes: marks, annotations: notes, yaxis: {title: {text: 'Orders'}, gridcolor: '#232326', zeroline: false, dtick: 1, rangemode: 'tozero'}}), plotConfig);
@@ -621,10 +621,16 @@
       area('broken', 'Broken', 'rgba(229,96,77,.9)'), area('idle', 'Idle', 'rgba(90,90,88,.55)')],
       plotLayout({shapes: marks, annotations: notes, yaxis: {title: {text: 'Trucks'}, gridcolor: '#232326', zeroline: false}}), plotConfig);
 
-    Plotly.react('ch-trade', [{type: 'bar', x: names.map(n => STRATEGY_NAMES[n]), y: names.map(n => Number(dist(data.kpis[n].distance).split(' ')[0])),
-      marker: {color: names.map(n => STRATEGY_COLOURS[n])}, text: names.map(n => `${data.kpis[n].dropped_orders} unassigned · ${data.kpis[n].late_deliveries} late`), textposition: 'outside', cliponaxis: false,
-      hovertemplate: '%{x}<br>%{y} ' + (data.routing === 'road' ? 'km' : 'units') + '<extra></extra>'}],
-      plotLayout({xaxis: {gridcolor: '#232326'}, yaxis: {title: {text: data.routing === 'road' ? 'Kilometres' : 'Units'}, gridcolor: '#232326', zeroline: false}, margin: {l: 52, r: 16, t: 28, b: 40}, hovermode: 'closest'}), plotConfig);
+    // Easy to read: for each strategy, how many of the orders ended up delivered and how many did not.
+    const finalOf = (n, f) => ts.series[n][f][ts.series[n][f].length - 1];
+    const total = data.kpis[current_name].total_orders;
+    const labels = names.map(n => `${STRATEGY_NAMES[n]}<br>${dist(data.kpis[n].distance)} driven · ${data.kpis[n].late_deliveries} late`);
+    const bar = (name, vals, colour, textColour) => ({type: 'bar', orientation: 'h', y: labels, x: vals, name, marker: {color: colour},
+      text: vals.map(v => v ? String(v) : ''), textposition: 'inside', insidetextanchor: 'middle', textangle: 0, textfont: {color: textColour, size: 14}, hoverinfo: 'skip'});
+    Plotly.react('ch-trade', [bar('Delivered', names.map(n => finalOf(n, 'served')), '#cede62', '#1a1d00'), bar('Not delivered', names.map(n => finalOf(n, 'dropped')), '#e5604d', '#ffffff')],
+      plotLayout({barmode: 'stack', bargap: 0.5, hovermode: false, margin: {l: 190, r: 16, t: 8, b: 56},
+        xaxis: {title: {text: `Orders (out of ${total})`}, range: [0, total], gridcolor: '#232326', zeroline: false},
+        yaxis: {autorange: 'reversed', automargin: true}, legend: {orientation: 'h', y: 1.2}}), plotConfig);
 
     $('an-events').innerHTML = ts.events.length ? ts.events.map(e => {
       const title = e.type === 'break_vehicle' ? `Truck ${e.payload.vehicle_id} taken offline` : `New order at (${fmt(e.payload.x, 0)}, ${fmt(e.payload.y, 0)})`;
