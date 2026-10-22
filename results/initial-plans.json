@@ -1,0 +1,884 @@
+[
+  {
+    "problem_name": "C101",
+    "routes": [
+      {
+        "vehicle_id": 19,
+        "stops": [
+          {
+            "customer_id": 0,
+            "arrival": 0.0,
+            "service_start": 0.0,
+            "departure": 0.0,
+            "cumulative_demand": 0
+          },
+          {
+            "customer_id": 13,
+            "arrival": 30.8,
+            "service_start": 30.8,
+            "departure": 120.8,
+            "cumulative_demand": 30
+          },
+          {
+            "customer_id": 17,
+            "arrival": 124.8,
+            "service_start": 124.8,
+            "departure": 214.8,
+            "cumulative_demand": 50
+          },
+          {
+            "customer_id": 18,
+            "arrival": 217.8,
+            "service_start": 217.8,
+            "departure": 307.8,
+            "cumulative_demand": 70
+          },
+          {
+            "customer_id": 19,
+            "arrival": 312.8,
+            "service_start": 312.8,
+            "departure": 402.8,
+            "cumulative_demand": 80
+          },
+          {
+            "customer_id": 15,
+            "arrival": 407.8,
+            "service_start": 407.8,
+            "departure": 497.8,
+            "cumulative_demand": 120
+          },
+          {
+            "customer_id": 16,
+            "arrival": 502.8,
+            "service_start": 502.8,
+            "departure": 592.8,
+            "cumulative_demand": 160
+          },
+          {
+            "customer_id": 14,
+            "arrival": 594.8,
+            "service_start": 594.8,
+            "departure": 684.8,
+            "cumulative_demand": 170
+          },
+          {
+            "customer_id": 12,
+            "arrival": 687.8,
+            "service_start": 687.8,
+            "departure": 777.8,
+            "cumulative_demand": 190
+          },
+          {
+            "customer_id": 0,
+            "arrival": 815.9,
+            "service_start": 815.9,
+            "departure": 815.9,
+            "cumulative_demand": 190
+          }
+        ],
+        "distance": 95.9,
+        "load": 190
+      },
+      {
+        "vehicle_id": 20,
+        "stops": [
+          {
+            "customer_id": 0,
+            "arrival": 0.0,
+            "service_start": 0.0,
+            "departure": 0.0,
+            "cumulative_demand": 0
+          },
+          {
+            "customer_id": 5,
+            "arrival": 15.1,
+            "service_start": 15.1,
+            "departure": 105.1,
+            "cumulative_demand": 10
+          },
+          {
+            "customer_id": 3,
+            "arrival": 106.1,
+            "service_start": 106.1,
+            "departure": 196.1,
+            "cumulative_demand": 20
+          },
+          {
+            "customer_id": 7,
+            "arrival": 198.1,
+            "service_start": 198.1,
+            "departure": 288.1,
+            "cumulative_demand": 40
+          },
+          {
+            "customer_id": 8,
+            "arrival": 290.9,
+            "service_start": 290.9,
+            "departure": 380.9,
+            "cumulative_demand": 60
+          },
+          {
+            "customer_id": 10,
+            "arrival": 384.5,
+            "service_start": 384.5,
+            "departure": 474.5,
+            "cumulative_demand": 70
+          },
+          {
+            "customer_id": 11,
+            "arrival": 477.5,
+            "service_start": 477.5,
+            "departure": 567.5,
+            "cumulative_demand": 80
+          },
+          {
+            "customer_id": 9,
+            "arrival": 570.7,
+            "service_start": 570.7,
+            "departure": 660.7,
+            "cumulative_demand": 90
+          },
+          {
+            "customer_id": 6,
+            "arrival": 662.9,
+            "service_start": 662.9,
+            "departure": 752.9,
+            "cumulative_demand": 110
+          },
+          {
+            "customer_id": 4,
+            "arrival": 755.1,
+            "service_start": 755.1,
+            "departure": 845.1,
+            "cumulative_demand": 120
+          },
+          {
+            "customer_id": 2,
+            "arrival": 848.7,
+            "service_start": 848.7,
+            "departure": 938.7,
+            "cumulative_demand": 150
+          },
+          {
+            "customer_id": 1,
+            "arrival": 940.7,
+            "service_start": 940.7,
+            "departure": 1030.7,
+            "cumulative_demand": 160
+          },
+          {
+            "customer_id": 0,
+            "arrival": 1049.4,
+            "service_start": 1049.4,
+            "departure": 1049.4,
+            "cumulative_demand": 160
+          }
+        ],
+        "distance": 59.4,
+        "load": 160
+      },
+      {
+        "vehicle_id": 21,
+        "stops": [
+          {
+            "customer_id": 0,
+            "arrival": 0.0,
+            "service_start": 0.0,
+            "departure": 0.0,
+            "cumulative_demand": 0
+          },
+          {
+            "customer_id": 20,
+            "arrival": 10.0,
+            "service_start": 10.0,
+            "departure": 100.0,
+            "cumulative_demand": 10
+          },
+          {
+            "customer_id": 24,
+            "arrival": 105.0,
+            "service_start": 105.0,
+            "departure": 195.0,
+            "cumulative_demand": 20
+          },
+          {
+            "customer_id": 25,
+            "arrival": 197.0,
+            "service_start": 197.0,
+            "departure": 287.0,
+            "cumulative_demand": 60
+          },
+          {
+            "customer_id": 23,
+            "arrival": 291.2,
+            "service_start": 732.0,
+            "departure": 822.0,
+            "cumulative_demand": 70
+          },
+          {
+            "customer_id": 22,
+            "arrival": 825.0,
+            "service_start": 825.0,
+            "departure": 915.0,
+            "cumulative_demand": 90
+          },
+          {
+            "customer_id": 21,
+            "arrival": 917.0,
+            "service_start": 917.0,
+            "departure": 1007.0,
+            "cumulative_demand": 110
+          },
+          {
+            "customer_id": 0,
+            "arrival": 1017.2,
+            "service_start": 1017.2,
+            "departure": 1017.2,
+            "cumulative_demand": 110
+          }
+        ],
+        "distance": 36.4,
+        "load": 110
+      }
+    ],
+    "dropped_customer_ids": [],
+    "total_distance": 191.7,
+    "vehicle_count": 3,
+    "solve_time_seconds": 2.018061199982185,
+    "search_limit_seconds": 2.0,
+    "objective_cost": 1917,
+    "drop_penalty": 20151,
+    "status": "ROUTING_SUCCESS",
+    "scale": 10
+  },
+  {
+    "problem_name": "R101",
+    "routes": [
+      {
+        "vehicle_id": 0,
+        "stops": [
+          {
+            "customer_id": 0,
+            "arrival": 0.0,
+            "service_start": 0.0,
+            "departure": 0.0,
+            "cumulative_demand": 0
+          },
+          {
+            "customer_id": 14,
+            "arrival": 32.0,
+            "service_start": 32.0,
+            "departure": 42.0,
+            "cumulative_demand": 20
+          },
+          {
+            "customer_id": 15,
+            "arrival": 57.8,
+            "service_start": 61.0,
+            "departure": 71.0,
+            "cumulative_demand": 28
+          },
+          {
+            "customer_id": 13,
+            "arrival": 91.0,
+            "service_start": 159.0,
+            "departure": 169.0,
+            "cumulative_demand": 51
+          },
+          {
+            "customer_id": 0,
+            "arrival": 180.2,
+            "service_start": 180.2,
+            "departure": 180.2,
+            "cumulative_demand": 51
+          }
+        ],
+        "distance": 79.0,
+        "load": 51
+      },
+      {
+        "vehicle_id": 1,
+        "stops": [
+          {
+            "customer_id": 0,
+            "arrival": 0.0,
+            "service_start": 0.0,
+            "departure": 0.0,
+            "cumulative_demand": 0
+          },
+          {
+            "customer_id": 23,
+            "arrival": 36.1,
+            "service_start": 68.0,
+            "departure": 78.0,
+            "cumulative_demand": 29
+          },
+          {
+            "customer_id": 22,
+            "arrival": 89.2,
+            "service_start": 97.0,
+            "departure": 107.0,
+            "cumulative_demand": 47
+          },
+          {
+            "customer_id": 4,
+            "arrival": 121.1,
+            "service_start": 149.0,
+            "departure": 159.0,
+            "cumulative_demand": 66
+          },
+          {
+            "customer_id": 0,
+            "arrival": 184.0,
+            "service_start": 184.0,
+            "departure": 184.0,
+            "cumulative_demand": 66
+          }
+        ],
+        "distance": 86.4,
+        "load": 66
+      },
+      {
+        "vehicle_id": 14,
+        "stops": [
+          {
+            "customer_id": 0,
+            "arrival": 0.0,
+            "service_start": 0.0,
+            "departure": 0.0,
+            "cumulative_demand": 0
+          },
+          {
+            "customer_id": 12,
+            "arrival": 15.0,
+            "service_start": 63.0,
+            "departure": 73.0,
+            "cumulative_demand": 19
+          },
+          {
+            "customer_id": 9,
+            "arrival": 98.5,
+            "service_start": 98.5,
+            "departure": 108.5,
+            "cumulative_demand": 35
+          },
+          {
+            "customer_id": 20,
+            "arrival": 119.7,
+            "service_start": 126.0,
+            "departure": 136.0,
+            "cumulative_demand": 44
+          },
+          {
+            "customer_id": 1,
+            "arrival": 152.5,
+            "service_start": 161.0,
+            "departure": 171.0,
+            "cumulative_demand": 54
+          },
+          {
+            "customer_id": 0,
+            "arrival": 186.2,
+            "service_start": 186.2,
+            "departure": 186.2,
+            "cumulative_demand": 54
+          }
+        ],
+        "distance": 83.4,
+        "load": 54
+      },
+      {
+        "vehicle_id": 17,
+        "stops": [
+          {
+            "customer_id": 0,
+            "arrival": 0.0,
+            "service_start": 0.0,
+            "departure": 0.0,
+            "cumulative_demand": 0
+          },
+          {
+            "customer_id": 5,
+            "arrival": 20.6,
+            "service_start": 34.0,
+            "departure": 44.0,
+            "cumulative_demand": 26
+          },
+          {
+            "customer_id": 16,
+            "arrival": 55.2,
+            "service_start": 75.0,
+            "departure": 85.0,
+            "cumulative_demand": 45
+          },
+          {
+            "customer_id": 17,
+            "arrival": 96.2,
+            "service_start": 157.0,
+            "departure": 167.0,
+            "cumulative_demand": 47
+          },
+          {
+            "customer_id": 0,
+            "arrival": 197.4,
+            "service_start": 197.4,
+            "departure": 197.4,
+            "cumulative_demand": 47
+          }
+        ],
+        "distance": 73.4,
+        "load": 47
+      },
+      {
+        "vehicle_id": 19,
+        "stops": [
+          {
+            "customer_id": 0,
+            "arrival": 0.0,
+            "service_start": 0.0,
+            "departure": 0.0,
+            "cumulative_demand": 0
+          },
+          {
+            "customer_id": 18,
+            "arrival": 15.8,
+            "service_start": 87.0,
+            "departure": 97.0,
+            "cumulative_demand": 12
+          },
+          {
+            "customer_id": 6,
+            "arrival": 108.2,
+            "service_start": 108.2,
+            "departure": 118.2,
+            "cumulative_demand": 15
+          },
+          {
+            "customer_id": 0,
+            "arrival": 129.4,
+            "service_start": 129.4,
+            "departure": 129.4,
+            "cumulative_demand": 15
+          }
+        ],
+        "distance": 38.2,
+        "load": 15
+      },
+      {
+        "vehicle_id": 20,
+        "stops": [
+          {
+            "customer_id": 0,
+            "arrival": 0.0,
+            "service_start": 0.0,
+            "departure": 0.0,
+            "cumulative_demand": 0
+          },
+          {
+            "customer_id": 11,
+            "arrival": 33.5,
+            "service_start": 67.0,
+            "departure": 77.0,
+            "cumulative_demand": 12
+          },
+          {
+            "customer_id": 19,
+            "arrival": 84.1,
+            "service_start": 84.1,
+            "departure": 94.1,
+            "cumulative_demand": 29
+          },
+          {
+            "customer_id": 10,
+            "arrival": 109.1,
+            "service_start": 124.0,
+            "departure": 134.0,
+            "cumulative_demand": 45
+          },
+          {
+            "customer_id": 0,
+            "arrival": 159.5,
+            "service_start": 159.5,
+            "departure": 159.5,
+            "cumulative_demand": 45
+          }
+        ],
+        "distance": 81.1,
+        "load": 45
+      },
+      {
+        "vehicle_id": 21,
+        "stops": [
+          {
+            "customer_id": 0,
+            "arrival": 0.0,
+            "service_start": 0.0,
+            "departure": 0.0,
+            "cumulative_demand": 0
+          },
+          {
+            "customer_id": 2,
+            "arrival": 18.0,
+            "service_start": 50.0,
+            "departure": 60.0,
+            "cumulative_demand": 7
+          },
+          {
+            "customer_id": 21,
+            "arrival": 70.4,
+            "service_start": 70.4,
+            "departure": 80.4,
+            "cumulative_demand": 18
+          },
+          {
+            "customer_id": 3,
+            "arrival": 107.3,
+            "service_start": 116.0,
+            "departure": 126.0,
+            "cumulative_demand": 31
+          },
+          {
+            "customer_id": 24,
+            "arrival": 140.1,
+            "service_start": 153.0,
+            "departure": 163.0,
+            "cumulative_demand": 34
+          },
+          {
+            "customer_id": 25,
+            "arrival": 178.0,
+            "service_start": 178.0,
+            "departure": 188.0,
+            "cumulative_demand": 40
+          },
+          {
+            "customer_id": 0,
+            "arrival": 221.5,
+            "service_start": 221.5,
+            "departure": 221.5,
+            "cumulative_demand": 40
+          }
+        ],
+        "distance": 117.9,
+        "load": 40
+      },
+      {
+        "vehicle_id": 24,
+        "stops": [
+          {
+            "customer_id": 0,
+            "arrival": 0.0,
+            "service_start": 0.0,
+            "departure": 0.0,
+            "cumulative_demand": 0
+          },
+          {
+            "customer_id": 7,
+            "arrival": 21.2,
+            "service_start": 81.0,
+            "departure": 91.0,
+            "cumulative_demand": 5
+          },
+          {
+            "customer_id": 8,
+            "arrival": 103.2,
+            "service_start": 103.2,
+            "departure": 113.2,
+            "cumulative_demand": 14
+          },
+          {
+            "customer_id": 0,
+            "arrival": 139.4,
+            "service_start": 139.4,
+            "departure": 139.4,
+            "cumulative_demand": 14
+          }
+        ],
+        "distance": 59.6,
+        "load": 14
+      }
+    ],
+    "dropped_customer_ids": [],
+    "total_distance": 619.0,
+    "vehicle_count": 8,
+    "solve_time_seconds": 2.006840700050816,
+    "search_limit_seconds": 2.0,
+    "objective_cost": 6190,
+    "drop_penalty": 34751,
+    "status": "ROUTING_SUCCESS",
+    "scale": 10
+  },
+  {
+    "problem_name": "RC101",
+    "routes": [
+      {
+        "vehicle_id": 2,
+        "stops": [
+          {
+            "customer_id": 0,
+            "arrival": 0.0,
+            "service_start": 0.0,
+            "departure": 0.0,
+            "cumulative_demand": 0
+          },
+          {
+            "customer_id": 11,
+            "arrival": 33.5,
+            "service_start": 59.0,
+            "departure": 69.0,
+            "cumulative_demand": 40
+          },
+          {
+            "customer_id": 22,
+            "arrival": 109.6,
+            "service_start": 109.6,
+            "departure": 119.6,
+            "cumulative_demand": 80
+          },
+          {
+            "customer_id": 20,
+            "arrival": 121.6,
+            "service_start": 122.0,
+            "departure": 132.0,
+            "cumulative_demand": 90
+          },
+          {
+            "customer_id": 0,
+            "arrival": 167.1,
+            "service_start": 167.1,
+            "departure": 167.1,
+            "cumulative_demand": 90
+          }
+        ],
+        "distance": 111.2,
+        "load": 90
+      },
+      {
+        "vehicle_id": 3,
+        "stops": [
+          {
+            "customer_id": 0,
+            "arrival": 0.0,
+            "service_start": 0.0,
+            "departure": 0.0,
+            "cumulative_demand": 0
+          },
+          {
+            "customer_id": 14,
+            "arrival": 35.4,
+            "service_start": 35.4,
+            "departure": 45.4,
+            "cumulative_demand": 10
+          },
+          {
+            "customer_id": 12,
+            "arrival": 48.4,
+            "service_start": 64.0,
+            "departure": 74.0,
+            "cumulative_demand": 30
+          },
+          {
+            "customer_id": 15,
+            "arrival": 81.8,
+            "service_start": 81.8,
+            "departure": 91.8,
+            "cumulative_demand": 50
+          },
+          {
+            "customer_id": 16,
+            "arrival": 93.8,
+            "service_start": 93.8,
+            "departure": 103.8,
+            "cumulative_demand": 70
+          },
+          {
+            "customer_id": 9,
+            "arrival": 115.0,
+            "service_start": 115.0,
+            "departure": 125.0,
+            "cumulative_demand": 90
+          },
+          {
+            "customer_id": 10,
+            "arrival": 130.0,
+            "service_start": 130.0,
+            "departure": 140.0,
+            "cumulative_demand": 120
+          },
+          {
+            "customer_id": 13,
+            "arrival": 147.1,
+            "service_start": 147.1,
+            "departure": 157.1,
+            "cumulative_demand": 130
+          },
+          {
+            "customer_id": 17,
+            "arrival": 168.3,
+            "service_start": 168.3,
+            "departure": 178.3,
+            "cumulative_demand": 150
+          },
+          {
+            "customer_id": 0,
+            "arrival": 218.6,
+            "service_start": 218.6,
+            "departure": 218.6,
+            "cumulative_demand": 150
+          }
+        ],
+        "distance": 123.0,
+        "load": 150
+      },
+      {
+        "vehicle_id": 4,
+        "stops": [
+          {
+            "customer_id": 0,
+            "arrival": 0.0,
+            "service_start": 0.0,
+            "departure": 0.0,
+            "cumulative_demand": 0
+          },
+          {
+            "customer_id": 23,
+            "arrival": 45.0,
+            "service_start": 65.0,
+            "departure": 75.0,
+            "cumulative_demand": 30
+          },
+          {
+            "customer_id": 21,
+            "arrival": 77.0,
+            "service_start": 77.0,
+            "departure": 87.0,
+            "cumulative_demand": 40
+          },
+          {
+            "customer_id": 19,
+            "arrival": 92.4,
+            "service_start": 92.4,
+            "departure": 102.4,
+            "cumulative_demand": 80
+          },
+          {
+            "customer_id": 18,
+            "arrival": 107.8,
+            "service_start": 107.8,
+            "departure": 117.8,
+            "cumulative_demand": 100
+          },
+          {
+            "customer_id": 25,
+            "arrival": 126.8,
+            "service_start": 154.0,
+            "departure": 164.0,
+            "cumulative_demand": 120
+          },
+          {
+            "customer_id": 24,
+            "arrival": 174.4,
+            "service_start": 174.4,
+            "departure": 184.4,
+            "cumulative_demand": 130
+          },
+          {
+            "customer_id": 0,
+            "arrival": 219.5,
+            "service_start": 219.5,
+            "departure": 219.5,
+            "cumulative_demand": 130
+          }
+        ],
+        "distance": 112.3,
+        "load": 130
+      },
+      {
+        "vehicle_id": 5,
+        "stops": [
+          {
+            "customer_id": 0,
+            "arrival": 0.0,
+            "service_start": 0.0,
+            "departure": 0.0,
+            "cumulative_demand": 0
+          },
+          {
+            "customer_id": 2,
+            "arrival": 30.8,
+            "service_start": 50.0,
+            "departure": 60.0,
+            "cumulative_demand": 30
+          },
+          {
+            "customer_id": 5,
+            "arrival": 70.2,
+            "service_start": 70.2,
+            "departure": 80.2,
+            "cumulative_demand": 50
+          },
+          {
+            "customer_id": 7,
+            "arrival": 91.4,
+            "service_start": 91.4,
+            "departure": 101.4,
+            "cumulative_demand": 70
+          },
+          {
+            "customer_id": 6,
+            "arrival": 104.4,
+            "service_start": 104.4,
+            "departure": 114.4,
+            "cumulative_demand": 90
+          },
+          {
+            "customer_id": 8,
+            "arrival": 120.2,
+            "service_start": 120.2,
+            "departure": 130.2,
+            "cumulative_demand": 100
+          },
+          {
+            "customer_id": 3,
+            "arrival": 138.8,
+            "service_start": 138.8,
+            "departure": 148.8,
+            "cumulative_demand": 110
+          },
+          {
+            "customer_id": 1,
+            "arrival": 151.8,
+            "service_start": 151.8,
+            "departure": 161.8,
+            "cumulative_demand": 130
+          },
+          {
+            "customer_id": 4,
+            "arrival": 168.9,
+            "service_start": 168.9,
+            "departure": 178.9,
+            "cumulative_demand": 170
+          },
+          {
+            "customer_id": 0,
+            "arrival": 215.0,
+            "service_start": 215.0,
+            "departure": 215.0,
+            "cumulative_demand": 170
+          }
+        ],
+        "distance": 115.8,
+        "load": 170
+      }
+    ],
+    "dropped_customer_ids": [],
+    "total_distance": 462.3,
+    "vehicle_count": 4,
+    "solve_time_seconds": 2.0017753000138327,
+    "search_limit_seconds": 2.0,
+    "objective_cost": 4623,
+    "drop_penalty": 41751,
+    "status": "ROUTING_SUCCESS",
+    "scale": 10
+  }
+]

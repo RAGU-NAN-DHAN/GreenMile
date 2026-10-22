@@ -1,0 +1,4 @@
+Plotly.js 2.27.0
+Source: https://cdn.plot.ly/plotly-2.27.0.min.js
+Copyright Plotly, Inc. Licensed under the MIT license; see license notice in the bundled file.
+Stored locally so the dashboard does not need a CDN connection at runtime.
