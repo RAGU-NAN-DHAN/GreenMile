@@ -261,3 +261,14 @@ tr.selected{background:#171908}tr.selected td:first-child{color:var(--accent)}
 :root{color-scheme:dark}
 select,select option,select optgroup{background-color:#181817;color:#f4f4f4}
 select option:checked,select option:hover{background-color:#3a3d18;color:#f4f4f4}
+
+/* cargo truck illustration: cab window, larger wheels set under the body */
+.truck{padding-bottom:30px}
+.trailer{margin-right:92px}
+.cab{width:84px;height:122px;bottom:30px;border-radius:16px 34px 8px 8px;background:linear-gradient(160deg,#2c2c2b,#161615);border-color:var(--line2)}
+.cab::before{content:"";position:absolute;top:14px;left:12px;right:10px;height:40px;border-radius:9px 22px 4px 4px;background:linear-gradient(155deg,#4b5d6a,#1d262c);border:1px solid #5a6b78;box-shadow:inset 0 0 8px rgba(0,0,0,.6)}
+.cab::after{content:"";position:absolute;right:5px;bottom:20px;width:12px;height:8px;border-radius:3px;background:#f1e7a6;box-shadow:0 0 8px rgba(241,231,166,.6)}
+.wheels{height:48px;bottom:0;z-index:2;pointer-events:none}
+.wheels i{width:48px;height:48px;bottom:0;border-radius:50%;background:#0a0a09;border:7px solid #232322;box-shadow:0 0 0 3px #111110}
+.wheels i::after{content:"";position:absolute;inset:9px;border-radius:50%;background:#8e8f95;box-shadow:inset 0 0 0 3px #5c5c5b}
+.wheels i:nth-child(1){left:9%;right:auto}.wheels i:nth-child(2){left:20%;right:auto}.wheels i:nth-child(3){right:20px;left:auto}
