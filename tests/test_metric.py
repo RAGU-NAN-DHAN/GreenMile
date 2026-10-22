@@ -64,3 +64,10 @@ def test_api_road_service_down_is_502(monkeypatch):
 def test_depot_coordinates_must_come_together():
     r = TestClient(api.app).post("/load", json={"dataset": "C101", "reset": True, "depot_lat": 12.9})
     assert r.status_code == 422
+
+
+def test_vit_defaults_to_the_amazon_point_on_jimmy_carter_road(monkeypatch):
+    monkeypatch.setattr(metric, "fetch_table", fake_table)
+    state = TestClient(api.app).post("/load", json={"dataset": "C101", "reset": True, "routing": "road", "city": "vit"}).json()
+    assert (state["geo"]["lat0"], state["geo"]["lng0"]) == metric.DEFAULT_DEPOT["vit"]
+    assert state["geo"]["cx"] == 40 and state["geo"]["cy"] == 50      # C101 depot in Solomon units

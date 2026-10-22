@@ -15,6 +15,8 @@ SCALE = 10                # solver works in tenths of a unit
 PLACE_M = 80.0            # metres per Solomon unit when placing the grid on a map
 MAX_TABLE = 100           # OSRM demo server limit on coordinates per table request
 CITIES = {"vit": (12.9697, 79.1607), "vellore": (12.9165, 79.1325), "chennai": (13.0827, 80.2707), "bengaluru": (12.9716, 77.5946)}
+# Default depot per location: the "amazon" point on Jimmy Carter Road, VIT (opposite Ruby Tower / Perl Research Park).
+DEFAULT_DEPOT = {"vit": (12.97234, 79.16561)}
 OSRM_TABLE = "https://router.project-osrm.org/table/v1/driving/{coords}?annotations=distance"
 
 

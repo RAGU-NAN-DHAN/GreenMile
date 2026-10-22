@@ -380,7 +380,7 @@ or use another routing service for anything heavier.
 ## Road-distance planning (default in the dashboard)
 
 Choose **Distance: Road** (default) or **Straight-line** in the header. In road mode
-(`metric.py`) the Solomon grid is placed on a map location (VIT Vellore by default, or
+(`metric.py`) the Solomon grid is placed on a map location (the "amazon" point on Jimmy Carter Road, VIT, by default, or
 any city/point you pick), OSRM driving distances are fetched, and the solver, simulator,
 baselines and KPIs all use them: travel time equals road distance, so plans, late
 deliveries and re-planning are road-based. One "unit" is calibrated so the average road

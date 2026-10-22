@@ -11,7 +11,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 from comparison import Comparison
 from kpis import calculate_kpis
-from metric import CITIES, RoadError, RoadMetric
+from metric import CITIES, DEFAULT_DEPOT, RoadError, RoadMetric
 from parser import find_dataset, load_solomon
 from solver import SolveError, solve_static
 
@@ -176,7 +176,7 @@ def load(payload: LoadPayload):
             raise HTTPException(409, "Reset confirmation is required to discard existing events")
         try:
             problem = load_solomon(find_dataset(ROOT / "data" / "solomon", payload.dataset))
-            anchor = None if payload.depot_lat is None else (payload.depot_lat, payload.depot_lng)
+            anchor = (payload.depot_lat, payload.depot_lng) if payload.depot_lat is not None else DEFAULT_DEPOT.get(payload.city)
             if payload.routing == "road":
                 try:
                     metric = RoadMetric.build(problem, payload.city, anchor=anchor)
