@@ -4,7 +4,9 @@
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
   <title>GreenMile — Operations</title>
   <link rel="stylesheet" href="/static/style.css">
+  <link rel="stylesheet" href="/static/vendor/leaflet/leaflet.css">
   <script defer src="/static/vendor/plotly.min.js"></script>
+  <script defer src="/static/vendor/leaflet/leaflet.js"></script>
   <script defer src="/static/app.js"></script>
 </head>
 <body>
@@ -36,6 +38,8 @@
     <section id="view-ops" class="view">
       <div class="title-row">
         <div><h1>Operations Dashboard</h1><p class="muted" id="subtitle">No dataset loaded</p></div>
+        <label class="sel-inline" id="city-label" hidden>City
+          <select id="city"><option value="vellore">Vellore</option><option value="chennai">Chennai</option><option value="bengaluru">Bengaluru</option></select></label>
         <label class="sel-inline">Strategy
           <select id="strategy">
             <option value="replan">OR-Tools re-plan</option>
@@ -59,12 +63,15 @@
       <div class="map-card">
         <div class="map-wrap" id="map-wrap">
           <div id="map"></div>
+          <div id="lmap" hidden></div>
+          <div id="map-note" hidden>Illustrative placement of Solomon x/y data on a street map · distances are in Solomon units</div>
           <div id="map-empty"><h3>Your fleet starts here</h3><p>Load a dataset to see the depot, customers and live trucks.</p></div>
           <aside class="vcard" id="vcard" hidden></aside>
           <div class="compass" aria-hidden="true"><svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="46" class="ring"/><circle cx="50" cy="50" r="30" class="inner"/><text x="50" y="57" text-anchor="middle" class="nw">N</text><path d="M50 8 L56 22 L44 22 Z" class="needle"/></svg></div>
           <div class="map-tools">
             <button id="z-in" aria-label="Zoom in">＋</button><button id="z-out" aria-label="Zoom out">－</button>
             <button id="z-reset" aria-label="Reset view">⟳</button><button id="place" aria-label="Place a new order on the map">⌖</button>
+            <button id="street" aria-label="Toggle street map" title="Street map">🗺</button>
           </div>
           <div id="busy" hidden><span class="spinner"></span><span id="busy-label">Planning routes…</span></div>
         </div>

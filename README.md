@@ -347,3 +347,13 @@ negative demand/service, and case-insensitive dataset lookup.
 When changing the parser or models, run the tests above. Keep the default at 25
 customers until the complete demo works. Published 100-customer routing results
 must not be treated as directly comparable to this 25-customer subset.
+
+## Street map view (illustrative)
+
+The map button (🗺) switches from the plain x/y plot to a Leaflet street map. Solomon
+data has no real coordinates, so the x/y grid is placed on a chosen city (Vellore,
+Chennai or Bengaluru) at 80 m per unit. This is cosmetic: the solver, distances and
+time windows still use Solomon x/y units, and route lines are straight, not roads.
+Tiles come from OpenStreetMap (attribution shown; internet needed), darkened with a
+CSS filter. Leaflet 1.9.4 is bundled in `static/vendor/leaflet/`. The plain map stays
+available as an offline fallback.

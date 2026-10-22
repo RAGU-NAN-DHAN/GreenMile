@@ -152,3 +152,18 @@ tr.selected{background:#171908}tr.selected td:first-child{color:var(--accent)}
 
 @media(max-width:1000px){.grid-2,.grid-vd{grid-template-columns:1fr}.kpi-grid{grid-template-columns:1fr}}
 @media(max-width:700px){.shell{padding:8px}.sidebar{display:none}.map-wrap{height:380px}.vcard{position:static;width:100%;border-radius:0}.stats{grid-template-columns:1fr 1fr}.form-grid{grid-template-columns:1fr 1fr}}
+
+/* street map (Leaflet) */
+#lmap{position:absolute;inset:0;background:#0a0a09;z-index:1}
+#map-note{position:absolute;left:14px;bottom:10px;z-index:900;font-size:10px;color:#9e9f9f;background:#040404cc;border:1px solid var(--line);border-radius:99px;padding:3px 10px;pointer-events:none}
+.leaflet-container{font:inherit;background:#0a0a09}
+.leaflet-control-attribution{background:#040404b3!important;color:#5c5c5b!important;font-size:9px}
+.leaflet-control-attribution a{color:#8a852b!important}
+.leaflet-tooltip{background:#111110;color:#f4f4f4;border:1px solid #2a2a29;border-radius:8px;font-size:11px}
+.vmark{width:16px;height:16px;border-radius:4px;border:2px solid #040404;background:#f4f4f4}
+.vmark.sel{background:#cede62;box-shadow:0 0 0 7px rgba(206,222,98,.25)}
+.vmark.broken{background:#e5604d;border-radius:50%}
+.vcard,.compass,.map-tools{z-index:1000}
+#busy{z-index:1100}
+/* OpenStreetMap tiles are light; invert them into a dark street map */
+#lmap .leaflet-tile-pane{filter:invert(1) hue-rotate(180deg) brightness(.75) contrast(.9) saturate(.45)}

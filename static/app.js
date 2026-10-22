@@ -16,6 +16,21 @@
   let controller = null;
   let viewRev = 0;            // bump to reset map zoom
   let view = 'ops';
+  let mode = 'plain';         // 'plain' (Plotly x/y) or 'street' (Leaflet, illustrative placement)
+  let lmap = null, llayer = null, fitted = '';
+  // Solomon x/y units are placed on a real city at 80 m per unit. Cosmetic only: the solver still works in x/y.
+  const CITIES = {vellore: [12.9165, 79.1325], chennai: [13.0827, 80.2707], bengaluru: [12.9716, 77.5946]};
+  const METRES_PER_UNIT = 80;
+  function toLatLng(x, y, centre) {
+    const [lat0, lng0] = CITIES[$('city').value];
+    return [lat0 + (y - centre.y) * METRES_PER_UNIT / 111320,
+            lng0 + (x - centre.x) * METRES_PER_UNIT / (111320 * Math.cos(lat0 * Math.PI / 180))];
+  }
+  function fromLatLng(latlng, centre) {
+    const [lat0, lng0] = CITIES[$('city').value];
+    return [centre.x + (latlng.lng - lng0) * 111320 * Math.cos(lat0 * Math.PI / 180) / METRES_PER_UNIT,
+            centre.y + (latlng.lat - lat0) * 111320 / METRES_PER_UNIT];
+  }
 
   // ---------- helpers ----------
   async function api(path, options = {}) {
@@ -124,6 +139,69 @@
   }
 
   function drawMap() {
+    $('map').hidden = mode === 'street';
+    $('lmap').hidden = mode !== 'street';
+    $('map-note').hidden = mode !== 'street';
+    $('city-label').hidden = mode !== 'street';
+    $('street').classList.toggle('active', mode === 'street');
+    if (mode === 'street') drawStreet(); else drawPlain();
+  }
+
+  function drawStreet() {
+    const s = current();
+    if (typeof L === 'undefined') { say('The street map library did not load. Switching back to the plain map.', true); mode = 'plain'; return drawMap(); }
+    const centre = {x: (Math.min(...s.customers.map(c => c.x)) + Math.max(...s.customers.map(c => c.x))) / 2,
+                    y: (Math.min(...s.customers.map(c => c.y)) + Math.max(...s.customers.map(c => c.y))) / 2};
+    const ll = (x, y) => toLatLng(x, y, centre);
+    if (!lmap) {
+      lmap = L.map('lmap', {zoomControl: false, attributionControl: true, preferCanvas: true});
+      L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+        {maxZoom: 19, attribution: '© OpenStreetMap contributors'}).addTo(lmap);
+      llayer = L.layerGroup().addTo(lmap);
+      lmap.on('click', ev => {
+        if (!placing) return;
+        const [x, y] = fromLatLng(ev.latlng, lmap._centre);
+        $('order-x').value = Math.round(x); $('order-y').value = Math.round(y);
+        $('order-ready').value = Math.round(t); $('order-due').value = data.max_time;
+        setPlacing(false);
+        say(`Location set to (${Math.round(x)}, ${Math.round(y)}). Review the form below the map and press Add order.`);
+      });
+    }
+    lmap._centre = centre;
+    llayer.clearLayers();
+    const showRoutes = $('t-routes').checked, showAlerts = $('t-alerts').checked;
+
+    if (showRoutes) {
+      s.routes.forEach(route => {
+        const isSel = route.vehicle_id === selected;
+        route.past.forEach(([a, b]) => L.polyline([ll(...a), ll(...b)], {color: '#6a6a68', weight: 1.5, dashArray: '2 6', interactive: false}).addTo(llayer));
+        route.future.forEach(([a, b]) => L.polyline([ll(...a), ll(...b)], {color: isSel ? ACCENT : OLIVE, weight: isSel ? 4 : 2, opacity: isSel ? 1 : .8, interactive: false}).addTo(llayer));
+      });
+    }
+    s.customers.forEach(c => {
+      L.circleMarker(ll(c.x, c.y), {radius: c.status === 'servicing' ? 8 : 6, color: '#040404', weight: 1, fillColor: STATUS_COLOURS[c.status], fillOpacity: 1})
+        .bindTooltip(`Order ${c.id} · ${c.status}<br>Demand ${c.demand} · window ${c.ready}–${c.due}<br>Vehicle ${c.vehicle_id ?? 'unassigned'}`).addTo(llayer);
+      if (showAlerts && c.status === 'unassigned') L.circleMarker(ll(c.x, c.y), {radius: 13, color: '#e5604d', weight: 2, fill: false, interactive: false}).addTo(llayer);
+    });
+    s.vehicles.filter(v => filter === 'all' || group(v.status) === filter).forEach(v => {
+      const cls = v.status === 'broken' ? 'broken' : v.id === selected ? 'sel' : '';
+      L.marker(ll(v.x, v.y), {icon: L.divIcon({className: '', html: `<div class="vmark ${cls}"></div>`, iconSize: [16, 16], iconAnchor: [8, 8]}), zIndexOffset: v.id === selected ? 1000 : 0})
+        .bindTooltip(`Vehicle ${v.id} · ${v.status}<br>Load ${v.used_capacity}/${v.capacity}`)
+        .on('click', () => { selected = v.id; render(); }).addTo(llayer);
+    });
+    L.marker(ll(s.depot.x, s.depot.y), {icon: L.divIcon({className: '', html: '<div class="vmark" style="transform:rotate(45deg);background:#fff"></div>', iconSize: [16, 16], iconAnchor: [8, 8]})})
+      .bindTooltip(`Depot · closes at ${data.max_time}`).addTo(llayer);
+
+    const key = `${data.session_id}-${viewRev}-${$('city').value}`;
+    lmap.invalidateSize();
+    if (fitted !== key) {
+      fitted = key;
+      lmap.fitBounds(L.latLngBounds(s.customers.map(c => ll(c.x, c.y)).concat([ll(s.depot.x, s.depot.y)])), {padding: [40, 40]});
+    }
+    $('lmap').style.cursor = placing ? 'crosshair' : '';
+  }
+
+  function drawPlain() {
     const s = current();
     const showRoutes = $('t-routes').checked, showAlerts = $('t-alerts').checked;
     const traces = [];
@@ -342,6 +420,7 @@
   }
 
   function zoom(factor) {
+    if (mode === 'street') { if (lmap) lmap.setZoom(lmap.getZoom() + (factor < 1 ? 1 : -1)); return; }
     const gd = $('map'); if (!gd.layout) return;
     const [x0, x1] = gd.layout.xaxis.range, [y0, y1] = gd.layout.yaxis.range;
     const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2, hx = (x1 - x0) / 2 * factor, hy = (y1 - y0) / 2 * factor;
@@ -365,6 +444,8 @@
   $('z-in').onclick = () => zoom(0.8);
   $('z-out').onclick = () => zoom(1.25);
   $('z-reset').onclick = () => { viewRev++; if (data) drawMap(); };
+  $('street').onclick = () => { mode = mode === 'street' ? 'plain' : 'street'; if (data) { drawMap(); if (mode === 'plain') Plotly.Plots.resize($('map')); } };
+  $('city').onchange = () => { if (data && mode === 'street') drawMap(); };
   $('place').onclick = () => { if (data && t >= data.committed_time) { setPlacing(!placing); if (placing) say('Click the map to choose the new order location.'); } };
   $('break').onclick = () => breakVehicle($('vehicle-select').value);
   $('vd-break').onclick = () => breakVehicle(selected);
