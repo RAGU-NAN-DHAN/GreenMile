@@ -124,6 +124,8 @@ undelivered. Full definitions are in [docs/TECHNICAL_NOTES.md](docs/TECHNICAL_NO
 | `POST /event` | Apply an event at the current time: `{"event_type": "breakdown", "vehicle_id": 3, ...}` or `{"event_type": "new_order", "x": .., "y": .., "demand": .., "ready": .., "due": .., ...}`, plus `time`, `session_id`, `revision`. |
 | `GET /kpis` | Before/after KPIs for every event. |
 | `GET /road?lat1=&lng1=&lat2=&lng2=` | Cached road geometry between two points (used by the street map). |
+| `GET /timeseries?step=` | Orders delivered, unassigned, late, distance and fleet activity per strategy, sampled every `step` minutes (used by Analytics). |
+| `GET /geocode?q=&lat=&lng=` | Place search for the booking page (OpenStreetMap, searched on the server, cached). |
 
 The app keeps one in-memory session per process, so everyone using the same server shares the same simulation.
 
@@ -148,7 +150,7 @@ docs/           Detailed technical notes
 ## Tests and benchmark
 
 ```bash
-.venv/Scripts/python -m pytest -q          # 130 tests, about 75 seconds
+.venv/Scripts/python -m pytest -q          # 136 tests, about 90 seconds
 .venv/Scripts/python benchmark.py          # static solve vs best-known values
 ```
 

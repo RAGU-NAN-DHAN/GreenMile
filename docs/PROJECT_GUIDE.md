@@ -299,6 +299,8 @@ not automatically better; doing nothing often drives less because it delivers le
 | `POST /event` | Apply `breakdown` or `new_order` at the current time. Needs `session_id` and `revision`. |
 | `GET /kpis` | Before/after comparison for all events. |
 | `GET /road` | Cached road geometry between two points for the street map. |
+| `GET /timeseries?step=` | Per-strategy delivered, unassigned, late, distance and fleet-activity counts every `step` minutes, plus the events (used by Analytics). Cached per session revision. |
+| `GET /geocode?q=&lat=&lng=` | Place search for the booking page, run on the server against OpenStreetMap (browsers get blocked), cached, `502` when unavailable. |
 
 Safety features: request bodies are validated with strict models (unknown fields rejected); `409` if the
 session changed (stale `revision`), if reset confirmation is missing, or if an event is earlier than the
@@ -332,6 +334,35 @@ list, gauges, stats.
 
 **Strategy comparison view:** three cards and a table.
 
+**Home page (first page, and the logo):** a live briefing: what GreenMile does in three lines, then a "Right now"
+panel with delivery progress, a fleet status bar (moving, servicing, waiting, idle, broken), the next order
+deadlines, and a plain-English line on which strategy is winning. Opening the link without options shows Home.
+
+**Orders page:** every order with status (pending, servicing, delivered, unassigned, at risk, late), truck,
+time window, planned arrival, slack and parcel weight/volume. Filter tabs, search and sortable columns; a row opens
+its truck on the map. Planned arrival comes from the backend (`arrival` and `service_start` per order).
+
+**Book page:** a three-step booking flow. (1) Search a place (server-side `/geocode`) or drop a pin on a small map.
+(2) Choose a parcel size: Small 25 kg / 0.15 m³, Medium 50 kg / 0.30 m³, Large 100 kg / 0.60 m³. (3) Choose the
+delivery time: within 1 hour, within 2 hours or anytime today. A side panel shows a live order summary, the parcel
+guide and the six trucks with the most free space. Booking sends a `new_order` event and then shows, per strategy,
+which truck takes the order and when it arrives, or that it could not be scheduled.
+
+**Analytics page:** KPI cards, charts of orders delivered over the day, orders left unassigned, fleet activity
+(stacked area) and orders delivered per strategy, plus the event history. Event times are marked on the charts.
+
+**Fleet panel and truck lights:** the Fleet list sits on the side of the map, with "Change the day" as a wide card
+under the map. Trucks are lit by state: broken = light red with a glow, idle = dim white, in use = bright yellow
+headlight and beam (the large truck on the Trucks page changes the same way).
+
+**Loads and parcels:** one load unit is 5 kg and 0.03 m³, so a 200-unit truck carries 1000 kg and 6 m³. A truck's
+load is the parcels still on board (assigned, not yet delivered), shown in kg and m³ on the Fleet list, truck card,
+Trucks page, order tiles and Orders table.
+
+**Selectors:** the native dropdowns for city, speed, strategy, distance and dataset are steppers (arrows with a dot
+indicator, keyboard left and right). The page holds redraws while a press is in progress so that clicks and
+breakdowns work while the simulation is playing.
+
 **How the page works:** `accept(data)` stores the state; `render()` redraws everything from it. Playing
 repeatedly calls `GET /state?t=…` (skipping a tick while a request is still in flight). Events call
 `POST /event` and then show the returned state.
@@ -347,7 +378,7 @@ truck or view, and `clean=1` hides everything but the map (used for screenshots)
 
 ### 9.1 Automated tests
 ```
-.venv/Scripts/python -m pytest -q        # 130 tests, about 75 seconds
+.venv/Scripts/python -m pytest -q        # 136 tests, about 90 seconds
 ```
 | File | What it protects |
 |---|---|
@@ -362,6 +393,7 @@ truck or view, and `clean=1` hides everything but the map (used for screenshots)
 | `test_metric.py` | Road distances, calibration, snapping, depot anchor, speed (with a fake routing table, so no internet) |
 | `test_benchmark.py` | Static solve is close to the best-known values |
 | `test_frontend_assets.py` | Page assets are served and the script's element IDs exist |
+| `test_orders_analytics.py` | Planned arrivals per order, the `/timeseries` shape and consistency, the `/geocode` endpoint |
 
 ### 9.2 Benchmark (25 customers)
 | Dataset | Ours | Best-known | Gap | Vehicles |
@@ -423,7 +455,11 @@ glide (CSS transition) while playing.
 Dark theme, a plain status line, a single brand mark, readable dropdowns, a cargo drawing with a road
 under the wheels and cargo stacked from the floor, units in minutes and kilometres.
 
-### 11.6 Not built
+### 11.6 Orders, booking, analytics and home
+Added after the first demo: the Orders and Book pages (with parcel weight/volume), the Analytics page (`/timeseries`),
+the Home page, truck lights and the stepper selectors. See section 8.2 for what each shows.
+
+### 11.7 Not built
 Weather and traffic events (they would need travel time to differ from distance).
 
 ---
