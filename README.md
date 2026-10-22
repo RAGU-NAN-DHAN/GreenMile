@@ -187,4 +187,4 @@ distances from OSRM and map data from OpenStreetMap contributors. Maps with Leaf
 The dashboard styling was inspired by the Haulix dashboard design by Phenomenon Studio on Dribbble; this
 project is not affiliated with them.
 
-A demo walkthrough script is in [DEMO.md](DEMO.md).
+A demo walkthrough script is in [DEMO.md](DEMO.md). Every change, in plain words, is in [CHANGELOG.md](CHANGELOG.md).
