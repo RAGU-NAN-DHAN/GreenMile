@@ -15,7 +15,7 @@
   let timer = null;
   let controller = null;
   let viewRev = 0;            // bump to reset map zoom
-  let view = 'ops';
+  let view = 'home';
   let mode = 'street';        // 'street' (Leaflet, grid placed on a real map) or 'plain' (Plotly x/y)
   let cardOpen = false;       // the truck card opens over the map only after a truck is clicked
   // Idle trucks wait at the depot (stacked on one spot), so only working trucks are drawn as icons.
@@ -57,6 +57,12 @@
   }
   const fmt = (n, d = 1) => Number(n).toFixed(d);
   // Time is in minutes (Solomon time units read as minutes). Distance is km in road mode, Solomon units otherwise.
+  // Load units to real quantities: one unit is 5 kg and 0.03 m³, so a 200-unit truck carries 1000 kg and 6 m³.
+  const KG_PER_UNIT = 5, M3_PER_UNIT = 0.03;
+  const kgOf = u => Math.round(u * KG_PER_UNIT), m3Of = u => u * M3_PER_UNIT;
+  // What is on the truck now: the parcels of its assigned orders that are not delivered yet.
+  const loadOf = vid => current().customers.filter(c => c.vehicle_id === vid && c.status !== 'served').reduce((a, c) => a + c.demand, 0);
+  const loadText = u => `${kgOf(u)} kg · ${m3Of(u).toFixed(2)} m³`;
   const dist = u => data && data.routing === 'road' ? `${(u * data.geo.metres_per_unit / 1000).toFixed(1)} km` : `${fmt(u)} units`;
   const group = status => status === 'broken' ? 'broken' : status === 'idle' ? 'idle' : 'active';
   const current = () => data.strategies[$('strategy').value];
@@ -174,12 +180,12 @@
       .map(([k, label]) => `<div><b>${count(k)}</b><span>${label}</span></div>`).join('');
     $('fleet-list').innerHTML = shown.map(v => {
       const total = v.served_count + v.pending_count, done = total ? Math.round(v.served_count / total * 100) : 0;
-      const loadPct = v.capacity ? Math.round(v.used_capacity / v.capacity * 100) : 0;
+      const onboard = loadOf(v.id), loadPct = v.capacity ? Math.round(onboard / v.capacity * 100) : 0;
       return `<button class="trow ${(v.activity || {}).kind || ''} ${v.id === selected ? 'sel' : ''}" data-id="${v.id}">
         <span class="tbadge">${TRUCK_SVG}<i>${v.id}</i></span>
         <span class="tmain"><b>Truck ${v.id}</b><small>${activityText(v)}</small><small class="tt">${timeText(v, s.routes.find(r => r.vehicle_id === v.id))}</small>
           <span class="bar"><span style="width:${done}%"></span></span></span>
-        <span class="tload">${loadPct}%<small>load</small></span></button>`;
+        <span class="tload">${kgOf(onboard)} kg<small>${loadPct}% load</small></span></button>`;
     }).join('') || '<p class="muted small pad">No trucks match this filter.</p>';
   }
 
@@ -225,7 +231,7 @@
   }
   const metres = (a, b) => Math.hypot((b[0] - a[0]) * 111320, (b[1] - a[1]) * 111320 * Math.cos(a[0] * Math.PI / 180));
   // Side-view truck (faces right). Flipped horizontally when the truck heads west.
-  const TRUCK_SVG = '<svg viewBox="0 0 38 24" aria-hidden="true"><rect x="1" y="2" width="23" height="14" rx="2" class="t-trailer"/><path d="M26 6h6l5 6v6H26z" class="t-cab"/><path d="M28 8h3.4l3 4H28z" class="t-glass"/><circle cx="8" cy="19" r="3.3" class="t-wheel"/><circle cx="18" cy="19" r="3.3" class="t-wheel"/><circle cx="31" cy="19" r="3.3" class="t-wheel"/></svg>';
+  const TRUCK_SVG = '<svg viewBox="0 0 38 24" aria-hidden="true"><rect x="1" y="2" width="23" height="14" rx="2" class="t-trailer"/><path d="M26 6h6l5 6v6H26z" class="t-cab"/><path d="M28 8h3.4l3 4H28z" class="t-glass"/><circle cx="8" cy="19" r="3.3" class="t-wheel"/><circle cx="18" cy="19" r="3.3" class="t-wheel"/><circle cx="31" cy="19" r="3.3" class="t-wheel"/><polygon class="beam" points="37,14.2 52,8.5 52,21"/><circle class="hl" cx="36.3" cy="15.2" r="1.9"/></svg>';
   function bearing(a, b) {
     const rad = Math.PI / 180, dl = (b[1] - a[1]) * rad;
     const y = Math.sin(dl) * Math.cos(b[0] * rad), x = Math.cos(a[0] * rad) * Math.sin(b[0] * rad) - Math.sin(a[0] * rad) * Math.cos(b[0] * rad) * Math.cos(dl);
@@ -298,7 +304,7 @@
     if (data.routing !== 'road') $('c-road').textContent = legsTotal ? `${(roadMetres / 1000).toFixed(1)} km${legsLoaded < legsTotal ? '…' : ''}` : '–';
     s.customers.forEach(c => {
       L.circleMarker(cl(c), {radius: c.status === 'servicing' ? 8 : 6, color: '#040404', weight: 1, fillColor: STATUS_COLOURS[c.status], fillOpacity: 1})
-        .bindTooltip(`Order ${c.id} · ${c.status}<br>Demand ${c.demand} · window ${c.ready}–${c.due} min<br>Vehicle ${c.vehicle_id ?? 'unassigned'}`).addTo(llayer);
+        .bindTooltip(`Order ${c.id} · ${c.status}<br>Parcel ${kgOf(c.demand)} kg · ${m3Of(c.demand).toFixed(2)} m³ · window ${c.ready}–${c.due} min<br>Vehicle ${c.vehicle_id ?? 'unassigned'}`).addTo(llayer);
       if (showAlerts && c.status === 'unassigned') L.circleMarker(cl(c), {radius: 13, color: '#e5604d', weight: 2, fill: false, interactive: false}).addTo(llayer);
     });
     if (trucksSession !== data.session_id) { vlayer.clearLayers(); trucks.clear(); trucksSession = data.session_id; }
@@ -324,7 +330,7 @@
         el.querySelector('.tkb').className = `tkb ${(v.activity || {}).kind || ''} ${v.id === selected ? 'sel' : ''}`;
       }
       entry.marker.setZIndexOffset(v.id === selected ? 1000 : 0);
-      entry.marker.bindTooltip(`Truck ${v.id} · ${activityText(v)}<br>Load ${v.used_capacity}/${v.capacity} · ${timeText(v, s.routes.find(r => r.vehicle_id === v.id))}`);
+      entry.marker.bindTooltip(`Truck ${v.id} · ${activityText(v)}<br>Load ${kgOf(loadOf(v.id))}/${kgOf(v.capacity)} kg · ${timeText(v, s.routes.find(r => r.vehicle_id === v.id))}`);
     });
     for (const [id, entry] of trucks) if (!shownIds.has(id)) { vlayer.removeLayer(entry.marker); trucks.delete(id); }
     const idleCount = s.vehicles.filter(v => (v.activity || {}).kind === 'idle').length;
@@ -364,7 +370,7 @@
       traces.push({x: list.map(c => c.x), y: list.map(c => c.y), type: 'scatter', mode: 'markers+text',
         text: list.map(c => String(c.id)), textposition: 'top center', textfont: {size: 9, color: '#9e9f9f'},
         marker: {size: status === 'servicing' ? 12 : 9, color: STATUS_COLOURS[status], symbol: status === 'unassigned' ? 'x' : 'circle', line: {width: 1, color: '#040404'}},
-        hovertemplate: list.map(c => `Order ${c.id} · ${status}<br>Demand ${c.demand} · window ${c.ready}–${c.due} min<br>Vehicle ${c.vehicle_id ?? 'unassigned'}<extra></extra>`),
+        hovertemplate: list.map(c => `Order ${c.id} · ${status}<br>Parcel ${kgOf(c.demand)} kg · ${m3Of(c.demand).toFixed(2)} m³ · window ${c.ready}–${c.due} min<br>Vehicle ${c.vehicle_id ?? 'unassigned'}<extra></extra>`),
         showlegend: false});
     }
 
@@ -379,10 +385,10 @@
     if (sel) traces.push({x: [sel.x], y: [sel.y], type: 'scatter', mode: 'markers', hoverinfo: 'skip', showlegend: false,
       marker: {size: 40, color: 'rgba(206,222,98,.22)'}});
     traces.push({x: shown.map(v => v.x), y: shown.map(v => v.y), type: 'scatter', mode: 'markers+text', name: 'vehicles', text: shown.map(v => String(v.id)), textposition: 'middle center', textfont: {size: 10, color: '#040404'},
-      customdata: shown.map(v => [v.id, v.status, v.used_capacity, v.capacity]),
+      customdata: shown.map(v => [v.id, v.status, kgOf(loadOf(v.id)), kgOf(v.capacity)]),
       marker: {size: 22, symbol: shown.map(v => v.status === 'broken' ? 'x' : 'square'),
         color: shown.map(v => v.status === 'broken' ? '#e5604d' : v.id === selected ? ACCENT : '#f4f4f4'), line: {width: 1.5, color: '#040404'}},
-      hovertemplate: 'Vehicle %{customdata[0]} · %{customdata[1]}<br>Load %{customdata[2]}/%{customdata[3]}<extra></extra>', showlegend: false});
+      hovertemplate: 'Vehicle %{customdata[0]} · %{customdata[1]}<br>Load %{customdata[2]}/%{customdata[3]} kg<extra></extra>', showlegend: false});
     traces.push({x: [s.depot.x], y: [s.depot.y], type: 'scatter', mode: 'markers+text', text: ['DEPOT'], textposition: 'bottom center',
       textfont: {size: 9, color: '#f4f4f4'}, marker: {size: 15, symbol: 'diamond', color: '#f4f4f4', line: {width: 2, color: '#040404'}},
       hovertemplate: `Depot · closes at ${data.max_time} min<extra></extra>`, showlegend: false});
@@ -426,7 +432,7 @@
     const remaining = route ? routeLength(route, 'future') : 0;
     const total = v.served_count + v.pending_count;
     const done = total ? Math.round(v.served_count / total * 100) : 0;
-    const loadPct = v.capacity ? Math.round(v.used_capacity / v.capacity * 100) : 0;
+    const onboard = loadOf(v.id), loadPct = v.capacity ? Math.round(onboard / v.capacity * 100) : 0;
     const timePct = Math.min(100, Math.round(t / data.max_time * 100));
     const orders = current().customers.filter(c => c.vehicle_id === selected && c.status !== 'served');
     const urgent = orders.filter(c => c.due - t < 20 && c.due >= t).sort((a, b) => a.due - b.due)[0];
@@ -435,14 +441,14 @@
       : ['good', 'On schedule — no time windows at risk.'];
     card.hidden = false;
     card.innerHTML = `
-      <div class="vc-head"><div><h3>Vehicle ${v.id} ${pill(v.status, v.status === 'broken' ? 'bad' : 'ok')}</h3><span class="muted small">Capacity ${v.capacity} · ${v.served_count} served</span></div>
+      <div class="vc-head"><div><h3>Vehicle ${v.id} ${pill(v.status, v.status === 'broken' ? 'bad' : 'ok')}</h3><span class="muted small">Capacity ${kgOf(v.capacity)} kg · ${m3Of(v.capacity).toFixed(1)} m³ · ${v.served_count} served</span></div>
         <button class="vc-x" id="vc-close" aria-label="Close">×</button></div>
       <div class="vc-route"><div class="vc-row"><b>Depot → ${total} stop${total === 1 ? '' : 's'}</b><span>${done}% done</span></div>
         <div class="bar"><span style="width:${done}%"></span></div>
         <div class="vc-row"><span class="muted">Now</span><span>${activityText(v)}</span></div>
         <div class="vc-row"><span class="muted">${v.pending_count} pending</span><span>${dist(remaining)} <span class="muted">remaining</span></span></div></div>
       <div class="vc-gauges">
-        <div class="gauge"><span class="muted small">Load</span><b>${loadPct}%</b><div class="bar ${loadPct > 90 ? 'red' : ''}"><span style="width:${loadPct}%"></span></div><span class="small muted">${v.used_capacity}/${v.capacity}</span></div>
+        <div class="gauge"><span class="muted small">Load</span><b>${loadPct}%</b><div class="bar ${loadPct > 90 ? 'red' : ''}"><span style="width:${loadPct}%"></span></div><span class="small muted">${loadText(onboard)} of ${kgOf(v.capacity)} kg</span></div>
         <div class="gauge"><span class="muted small">Day elapsed</span><b>${timePct}%</b><div class="bar"><span style="width:${timePct}%"></span></div><span class="small muted">${fmt(t, 0)} / ${data.max_time} min</span></div></div>
       <div class="alert ${alert[0]}">${alert[1]}</div>
       <div class="row-gap" style="margin-top:10px"><button class="btn ghost" id="vc-detail">Details</button>
@@ -459,18 +465,20 @@
     const orders = s.customers.filter(c => c.vehicle_id === selected).sort((a, b) => a.due - b.due);
     const total = v.served_count + v.pending_count;
     const done = total ? Math.round(v.served_count / total * 100) : 0;
-    const loadPct = v.capacity ? Math.round(v.used_capacity / v.capacity * 100) : 0;
+    const onboard = loadOf(v.id), loadPct = v.capacity ? Math.round(onboard / v.capacity * 100) : 0;
     const timePct = Math.min(100, Math.round(t / data.max_time * 100));
     const route = s.routes.find(r => r.vehicle_id === selected);
 
+    const bigTruck = document.querySelector('#view-vehicle .truck');
+    if (bigTruck) { const k = (v.activity || {}).kind; bigTruck.className = 'truck ' + (v.status === 'broken' ? 'broken' : k === 'idle' || !k ? 'idle' : 'inuse'); }
     $('crumb-v').textContent = `Vehicle ${v.id}`;
     $('vd-name').textContent = `Vehicle ${v.id}`;
     $('vd-status').textContent = v.status;
     $('vd-status').className = `pill ${v.status === 'broken' ? 'bad' : 'ok'}`;
-    $('vd-sub').textContent = `${STRATEGY_NAMES[$('strategy').value]} · capacity ${v.capacity} · at (${fmt(v.x, 0)}, ${fmt(v.y, 0)})`;
+    $('vd-sub').textContent = `${STRATEGY_NAMES[$('strategy').value]} · capacity ${kgOf(v.capacity)} kg · ${m3Of(v.capacity).toFixed(1)} m³ · at (${fmt(v.x, 0)}, ${fmt(v.y, 0)})`;
     $('vd-loaded').textContent = loadPct >= 100 ? 'Fully loaded' : `${loadPct}% loaded`;
     $('vd-loaded').className = `pill ${loadPct >= 90 ? 'bad' : 'warn'}`;
-    $('vd-cap-text').textContent = `${v.used_capacity} / ${v.capacity}`;
+    $('vd-cap-text').textContent = `${kgOf(onboard)} / ${kgOf(v.capacity)} kg · ${m3Of(onboard).toFixed(2)} / ${m3Of(v.capacity).toFixed(1)} m³`;
     $('vd-cap-pct').textContent = `${loadPct}%`;
     $('vd-cap-bar').style.width = `${Math.min(100, loadPct)}%`;
     $('vd-prog-text').textContent = `${v.served_count} / ${total} stops`;
@@ -478,12 +486,12 @@
     $('vd-prog-bar').style.width = `${done}%`;
 
     $('tiles').innerHTML = orders.length ? orders.map(c => `<div class="tile ${c.status} ${c.id === selectedOrder ? 'sel' : ''}" data-id="${c.id}">
-        <span class="id">ORD-${c.id}</span><span>${pill(c.status, statusKind(c.status))} <span class="muted">${c.demand}</span></span></div>`).join('')
+        <span class="id">ORD-${c.id}</span><span>${pill(c.status, statusKind(c.status))} <span class="muted">${kgOf(c.demand)} kg</span></span></div>`).join('')
       : '<div class="muted small" style="grid-column:1/-1;padding:14px">No orders assigned to this vehicle.</div>';
-    $('pk-sub').textContent = `${orders.length} orders · total demand ${orders.reduce((n, c) => n + c.demand, 0)}`;
+    $('pk-sub').textContent = `${orders.length} orders · total ${loadText(orders.reduce((n, c) => n + c.demand, 0))}`;
     $('pk-list').innerHTML = orders.map(c => `<div class="pk ${c.id === selectedOrder ? 'sel' : ''}" data-id="${c.id}">
         <div class="pk-top"><b>ORD-${c.id}</b>${pill(c.status, statusKind(c.status))}</div>
-        <div class="pk-tags">${pill('demand ' + c.demand)}${pill('ready ' + c.ready + ' min')}${pill('due ' + c.due + ' min')}</div>
+        <div class="pk-tags">${pill(kgOf(c.demand) + ' kg · ' + m3Of(c.demand).toFixed(2) + ' m³')}${pill('ready ' + c.ready + ' min')}${pill('due ' + c.due + ' min')}</div>
         ${c.id === selectedOrder ? `<div class="pk-more"><span>Location<b>(${c.x}, ${c.y})</b></span><span>Window<b>${c.ready}–${c.due} min</b></span><span>Assigned to<b>Vehicle ${c.vehicle_id}</b></span><span>Status<b>${c.status}</b></span></div>` : ''}</div>`).join('');
     document.querySelectorAll('#tiles .tile, #pk-list .pk').forEach(el => el.onclick = () => { selectedOrder = Number(el.dataset.id); renderVehicle(); });
 
@@ -544,12 +552,13 @@
       const slack = r.slack === null ? '–' : r.slack < 0 ? `${fmt(-r.slack, 0)} min late` : `${fmt(r.slack, 0)} min`;
       return `<tr data-truck="${c.vehicle_id ?? ''}"><td><b>ORD-${c.id}</b></td><td>${pill(label, kind)}</td><td>${c.vehicle_id == null ? '–' : 'Truck ' + c.vehicle_id}</td>
         <td>${c.ready}–${c.due} min</td><td>${c.arrival == null ? '–' : fmt(c.arrival, 0) + ' min'}</td>
-        <td class="${r.slack !== null && r.slack < 0 ? 'slack-bad' : r.slack !== null && r.slack < 10 && c.status !== 'served' ? 'slack-warn' : ''}">${slack}</td><td>${c.demand}</td></tr>`;
+        <td class="${r.slack !== null && r.slack < 0 ? 'slack-bad' : r.slack !== null && r.slack < 10 && c.status !== 'served' ? 'slack-warn' : ''}">${slack}</td><td>${kgOf(c.demand)} kg · ${m3Of(c.demand).toFixed(2)} m³</td></tr>`;
     }).join('') || '<tr><td colspan="7" class="muted">No orders match.</td></tr>';
+    renderBookSide();
   }
 
   // ---------- order booking ----------
-  let bookMap = null, bookMarker = null, bookPoint = null, bookSize = 10, bookWindow = 60;
+  let bookMap = null, bookMarker = null, bookPoint = null, bookSize = 10, bookWindow = 60, bookLabel = '';
   function initBookMap() {
     if (!data || typeof L === 'undefined') return;
     if (!bookMap) {
@@ -560,10 +569,11 @@
     setTimeout(() => bookMap.invalidateSize(), 60);
   }
   function setBookPoint(lat, lng, label) {
-    bookPoint = {lat, lng};
+    bookPoint = {lat, lng}; bookLabel = label;
     if (bookMarker) bookMarker.setLatLng([lat, lng]);
     else bookMarker = L.circleMarker([lat, lng], {radius: 9, color: '#040404', weight: 2, fillColor: '#cede62', fillOpacity: 1}).addTo(bookMap);
     $('book-loc').textContent = `${label} · ${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+    if (data) renderBookSide();
     $('book-go').disabled = !(data && t >= data.committed_time);
   }
   async function searchPlaces(q) {
@@ -579,6 +589,25 @@
     }).join('');
     $('book-result').hidden = false;
     $('book-result').innerHTML = `<h3>ORD-${id} booked</h3><ul>${rows}</ul>`;
+  }
+
+  const PARCELS = {5: ['Small', 'a few boxes'], 10: ['Medium', 'a stack of cartons'], 20: ['Large', 'a pallet load']};
+  function renderBookSide() {
+    if (!data || !$('book-summary')) return;
+    const [name, example] = PARCELS[bookSize] || ['Parcel', ''];
+    const when = bookWindow ? `within ${bookWindow} min` : 'anytime today';
+    $('book-summary').innerHTML = `<ul class="sum">
+      <li><span>Deliver to</span><b>${bookPoint ? bookLabel : 'No location yet'}</b></li>
+      <li><span>Parcel</span><b>${name} · ${loadText(bookSize)}</b></li>
+      <li><span>Looks like</span><b>${example}</b></li>
+      <li><span>Delivery time</span><b>${when}, from minute ${fmt(t, 0)}</b></li></ul>`;
+    const s = current();
+    const rows = s.vehicles.filter(v => v.status !== 'broken').map(v => {
+      const planned = s.customers.filter(c => c.vehicle_id === v.id).reduce((a, c) => a + c.demand, 0);
+      return {v, planned, free: v.capacity - planned};
+    }).sort((a, b) => b.free - a.free).slice(0, 6);
+    $('book-trucks').innerHTML = rows.map(r => `<div class="hm-mini"><span>Truck ${r.v.id}</span><div class="bar"><span style="width:${Math.round(r.planned / r.v.capacity * 100)}%"></span></div><b>${kgOf(r.free)} kg free</b></div>`).join('')
+      + `<p class="muted small" style="margin-top:8px">Your parcel needs ${kgOf(bookSize)} kg and ${m3Of(bookSize).toFixed(2)} m³. Bars show how full each truck's plan is.</p>`;
   }
 
   // ---------- analytics page ----------
@@ -639,26 +668,59 @@
     }).join('') : '<tr><td colspan="5" class="muted">No events yet. Take a truck offline or book an order.</td></tr>';
   }
 
-  // ---------- home (three minimal designs, pick one) ----------
-  function renderHome() {
-    const ok = !!data, s = ok ? current() : null, k = ok ? data.kpis[$('strategy').value] : null;
-    const working = ok ? s.vehicles.filter(v => v.served_count + v.pending_count > 0).length : 0;
-    const put = (key, text) => document.querySelectorAll(`[data-live="${key}"]`).forEach(el => { el.textContent = text; });
-    const line = ok ? `${data.dataset} · ${k.served_orders} of ${k.total_orders} orders delivered · ${k.dropped_orders} unassigned · minute ${fmt(t, 0)}` : 'No dataset loaded yet. Press Load & solve to begin.';
-    put('served', ok ? `${k.served_orders}/${k.total_orders}` : '–');
-    put('working', ok ? String(working) : '–');
-    put('unassigned', ok ? String(k.dropped_orders) : '–');
-    put('line', line); put('strip', line);
-    put('t-ops', ok ? `${working} trucks working · minute ${fmt(t, 0)}` : 'Live fleet map');
-    put('t-orders', ok ? `${k.total_orders} orders · ${k.dropped_orders} unassigned` : 'Every order and its status');
-    put('t-analytics', ok ? `${data.events.length} event${data.events.length === 1 ? '' : 's'} so far` : 'Charts and event history');
-  }
-  function setHome(n) {
-    document.querySelectorAll('.home-v').forEach(el => { el.hidden = el.id !== 'home-v' + n; });
-    document.querySelectorAll('.home-switch button').forEach(b => b.classList.toggle('on', b.dataset.h === String(n)));
-    try { localStorage.setItem('gmHome', String(n)); } catch (e) { /* storage may be blocked */ }
+  // ---------- home (three informative designs, pick one) ----------
+  function homeFacts() {
+    const s = current(), k = data.kpis[$('strategy').value];
+    const kind = x => s.vehicles.filter(v => (v.activity || {}).kind === x).length;
+    const moving = kind('travelling'), serving = kind('servicing'), waiting = kind('waiting'), idle = kind('idle'), broken = kind('broken');
+    const open = s.customers.filter(c => c.status !== 'served');
+    const risky = open.filter(c => c.status !== 'unassigned' && slackOf(c) !== null && slackOf(c) < 10).sort((a, b) => slackOf(a) - slackOf(b));
+    const unassigned = s.customers.filter(c => c.status === 'unassigned');
+    const soon = open.filter(c => c.status !== 'unassigned' && c.due >= t).sort((a, b) => a.due - b.due).slice(0, 4);
+    const brokenTrucks = s.vehicles.filter(v => (v.activity || {}).kind === 'broken');
+    const events = data.events.slice(-3).reverse();
+    return {s, k, moving, serving, waiting, idle, broken, working: moving + serving + waiting, risky, unassigned, soon, brokenTrucks, events};
   }
 
+  function verdictText() {
+    if (!data.events.length) return 'No disruption yet. Take a truck offline or book an order to see which strategy copes best.';
+    const names = Object.keys(data.kpis), key = n => { const x = data.kpis[n]; return [x.dropped_orders, x.late_deliveries, x.distance]; };
+    const best = names.slice().sort((a, b) => { const x = key(a), y = key(b); return x[0] - y[0] || x[1] - y[1] || x[2] - y[2]; })[0];
+    const k = data.kpis[best], dn = data.kpis.do_nothing;
+    const more = dn.dropped_orders - k.dropped_orders;
+    return best === 'do_nothing' ? 'Doing nothing is holding up so far: no strategy has beaten it yet.'
+      : `${STRATEGY_NAMES[best]} is ahead: ${k.dropped_orders} unassigned and ${k.late_deliveries} late${more > 0 ? `, ${more} more order${more === 1 ? '' : 's'} delivered than doing nothing` : ''}${k.distance - dn.distance > 0.05 ? ` for ${dist(k.distance - dn.distance)} more driving` : ''}.`;
+  }
+
+  const fleetBar = f => {
+    const total = Math.max(1, f.moving + f.serving + f.waiting + f.idle + f.broken);
+    const seg = (n, cls) => n ? `<i class="${cls}" style="flex:${n}"></i>` : '';
+    return `<div class="fbar">${seg(f.moving, 'm')}${seg(f.serving, 's')}${seg(f.waiting, 'w')}${seg(f.idle, 'i')}${seg(f.broken, 'b')}</div>
+      <div class="flegend"><span><i class="m"></i>Moving ${f.moving}</span><span><i class="s"></i>Servicing ${f.serving}</span><span><i class="w"></i>Waiting ${f.waiting}</span><span><i class="i"></i>Idle ${f.idle}</span><span><i class="b"></i>Broken ${f.broken}</span></div>`;
+  };
+  const rowOrder = c => `<li><b>ORD-${c.id}</b><span>${c.vehicle_id == null ? 'unassigned' : 'Truck ' + c.vehicle_id}</span><em>${slackOf(c) !== null && slackOf(c) < 0 ? fmt(-slackOf(c), 0) + ' min late' : c.status === 'unassigned' ? 'needs a truck' : 'due in ' + fmt(Math.max(0, c.due - t), 0) + ' min'}</em></li>`;
+  const listOf = (rows, empty) => rows.length ? `<ul class="hm-list">${rows.join('')}</ul>` : `<p class="muted small hm-none">${empty}</p>`;
+
+  function renderHome() {
+    const empty = `<div class="hm-empty"><img src="/static/logo.svg" alt=""><h1>GreenMile</h1><p>Live last-mile route planning on real roads. Load a dataset to see the day.</p><button class="btn primary big" data-act="load">Load &amp; solve</button></div>`;
+    if (!data) { $('home-v2').innerHTML = empty; return; }
+    const f = homeFacts(), k = f.k, pct = k.total_orders ? Math.round(k.served_orders / k.total_orders * 100) : 0;
+    const status = `${data.dataset} · minute ${fmt(t, 0)} of ${data.max_time}`;
+
+    // Design 2: briefing (what it is + live snapshot)
+    $('home-v2').innerHTML = `
+      <div class="hm-two">
+        <div class="hm-about"><div class="hm-kicker">GreenMile</div><h1>Delivery planning that keeps working when the day goes wrong.</h1>
+          <ul class="hm-points"><li><b>Plan</b>Routes on real roads for every truck, inside each customer's time window.</li><li><b>Disrupt</b>Break a truck down or book a new order at any minute.</li><li><b>Recover</b>Three strategies re-plan the same event so you can compare them.</li></ul>
+          <div class="row-gap"><button class="btn primary big" data-go="ops">Open dashboard</button><button class="btn big" data-go="analytics">See analytics</button></div></div>
+        <div class="hm-snap card"><header><h2>Right now</h2><span class="muted small">${status}</span></header>
+          <div class="pad"><div class="hm-big"><b>${pct}%</b><span>of orders delivered · ${k.served_orders} of ${k.total_orders}</span></div><div class="bar"><span style="width:${pct}%"></span></div>
+            <h3 class="hm-h3">Fleet</h3>${fleetBar(f)}
+            <h3 class="hm-h3">Next deadlines</h3>${listOf(f.soon.map(rowOrder), 'No open orders.')}
+            <h3 class="hm-h3">Which strategy is winning?</h3><p class="hm-verdict">${verdictText()}</p></div></div>
+      </div>`;
+
+  }
   // ---------- steppers: arrow selectors instead of native dropdowns ----------
   function enhanceSteppers() {
     document.querySelectorAll('select[data-stepper]').forEach(sel => {
@@ -687,7 +749,7 @@
     ['home', 'ops', 'orders', 'book', 'vehicle', 'analytics', 'compare'].forEach(v => { $('view-' + v).hidden = v !== name; });
     if (name === 'book') setTimeout(initBookMap, 0);
     document.querySelectorAll('.nav').forEach(b => b.classList.toggle('active', b.dataset.view === name));
-    if (data) { render(); if (name === 'ops') setTimeout(() => { if (mode === 'street' && lmap) lmap.invalidateSize(); else if (!$('map').hidden) Plotly.Plots.resize($('map')); }, 0); }
+    if (data) { render(); if (name === 'ops') setTimeout(() => { if (mode === 'street' && lmap) { lmap.invalidateSize(); fitted = ''; drawStreet(); } else if (!$('map').hidden) Plotly.Plots.resize($('map')); }, 0); }
   }
 
   async function post(path, body, label) {
@@ -788,10 +850,11 @@
   enhanceSteppers();
   // home + logo
   $('logo-home').onclick = () => showView('home');
-  document.addEventListener('click', e => { const b = e.target.closest('[data-go]'); if (b) showView(b.dataset.go); });
-  document.querySelector('.home-switch').onclick = e => { const b = e.target.closest('button'); if (b) setHome(b.dataset.h); };
-  let savedHome = '1'; try { savedHome = localStorage.getItem('gmHome') || '1'; } catch (e) { /* ignore */ }
-  setHome(new URLSearchParams(location.search).get('home') || savedHome);
+  document.addEventListener('click', e => {
+    const b = e.target.closest('[data-go]'); if (b) showView(b.dataset.go);
+    if (e.target.closest('[data-act="load"]')) loadDataset();
+  });
+  renderHome();
   // orders + booking wiring
   $('ord-search').oninput = e => { ordQuery = e.target.value; if (data) renderOrders(); };
   $('ord-filters').onclick = e => {
@@ -810,8 +873,8 @@
     selected = Number(row.dataset.truck); cardOpen = true; showView('ops');
   };
   $('ord-book-open').onclick = () => showView('book');
-  $('book-size').onclick = e => { const b = e.target.closest('.opt'); if (!b) return; bookSize = Number(b.dataset.d); document.querySelectorAll('#book-size .opt').forEach(x => x.classList.toggle('on', x === b)); };
-  $('book-slot').onclick = e => { const b = e.target.closest('.opt'); if (!b) return; bookWindow = Number(b.dataset.w); document.querySelectorAll('#book-slot .opt').forEach(x => x.classList.toggle('on', x === b)); };
+  $('book-size').onclick = e => { const b = e.target.closest('.opt'); if (!b) return; bookSize = Number(b.dataset.d); if (data) renderBookSide(); document.querySelectorAll('#book-size .opt').forEach(x => x.classList.toggle('on', x === b)); };
+  $('book-slot').onclick = e => { const b = e.target.closest('.opt'); if (!b) return; bookWindow = Number(b.dataset.w); if (data) renderBookSide(); document.querySelectorAll('#book-slot .opt').forEach(x => x.classList.toggle('on', x === b)); };
   const runSearch = async () => {
     const q = $('book-q').value.trim(); if (!q || !data) return;
     $('book-results').innerHTML = '<li class="muted small">Searching…</li>';
@@ -853,7 +916,9 @@
     if (wanted > 0) first = await api(`/state?t=${wanted}`);
     if (params.has('truck')) { selected = Number(params.get('truck')); cardOpen = true; }
     accept(first);
-    if (['vehicle', 'compare', 'orders', 'analytics', 'home', 'book'].includes(params.get('view'))) showView(params.get('view'));
+    const wantsOps = params.has('t') || params.has('truck') || params.get('clean') || params.get('view') === 'ops';
+    if (wantsOps) showView('ops');
+    else if (['vehicle', 'compare', 'orders', 'analytics', 'home', 'book'].includes(params.get('view'))) showView(params.get('view'));
     $('order-ready').value = Math.round(first.time); $('order-due').value = first.max_time;
     say(`${first.dataset} is loaded. Move the slider or press Play.`);
   }).catch(() => {});

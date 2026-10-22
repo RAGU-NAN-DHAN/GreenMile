@@ -399,3 +399,104 @@ select option:checked,select option:hover{background-color:#3a3d18;color:#f4f4f4
 .st-dots{display:flex;gap:3px;height:4px}.st-dots i{width:4px;height:4px;border-radius:50%;background:#2d2f22;transition:width .2s}
 .st-dots i.on{width:13px;border-radius:99px;background:var(--accent)}
 .chip.sel{padding:3px 10px 3px 12px}
+
+/* truck lights: broken = light red, idle = dim white, in use = bright yellow headlight */
+.tkb svg,.tbadge svg{overflow:visible}
+.tkb .beam,.tbadge .beam{fill:#ffe45c;opacity:0}
+.tkb .hl,.tbadge .hl{fill:#4a4a48}
+.tkb.travelling .hl,.tkb.servicing .hl,.tkb.waiting .hl,.trow.travelling .hl,.trow.servicing .hl,.trow.waiting .hl{fill:#fff27a;filter:drop-shadow(0 0 3px #ffe45c) drop-shadow(0 0 6px #ffd400)}
+.tkb.travelling .beam,.tkb.servicing .beam,.tkb.waiting .beam,.trow.travelling .beam,.trow.servicing .beam,.trow.waiting .beam{opacity:.42}
+.tkb.idle,.trow.idle .tbadge{opacity:.55}
+.tkb.idle .t-trailer,.tkb.idle .t-cab,.trow.idle .tbadge .t-trailer,.trow.idle .tbadge .t-cab{fill:#d9d9d6}
+.tkb.broken,.trow.broken .tbadge{border-color:#ff9a8c;color:#ff9a8c;box-shadow:0 0 16px rgba(255,120,100,.55)}
+.tkb.broken .t-trailer,.tkb.broken .t-cab,.trow.broken .tbadge .t-trailer,.trow.broken .tbadge .t-cab{fill:#ff9a8c}
+.tkb.broken::after{display:none}
+/* big cargo truck on the vehicle page */
+.truck.idle{filter:grayscale(.7) brightness(.78)}
+.truck.idle .cab::after{background:#4a4a48;box-shadow:none}
+.truck.broken .cab,.truck.broken .trailer{border-color:#ff9a8c;box-shadow:0 0 22px rgba(255,120,100,.45)}
+.truck.broken .cab{background:linear-gradient(160deg,#5a2c27,#2a1210)}
+.truck.broken .cab::after{background:#ff8a7a;box-shadow:0 0 10px rgba(255,100,90,.8)}
+.truck.inuse .cab::after{background:#fff27a;box-shadow:0 0 12px #ffd400,38px -2px 30px 14px rgba(255,228,92,.25)}
+
+/* informative home */
+.hm-empty{min-height:55vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center}
+.hm-empty img{width:110px;height:110px}.hm-empty h1{font-size:60px;letter-spacing:-2px}.hm-empty p{color:var(--muted);font-size:18px}
+.hm-top{display:flex;justify-content:space-between;align-items:center;gap:16px;margin:10px 0 18px;flex-wrap:wrap}
+.hm-brand{display:flex;align-items:center;gap:16px}.hm-brand img{width:64px;height:64px}.hm-brand h1,.hm-top h1{font-size:38px;letter-spacing:-1.2px;line-height:1.05}
+.hm-kicker{color:var(--accent);letter-spacing:.18em;font-size:12px;font-weight:700;text-transform:uppercase;margin-bottom:6px}
+.hm-stats{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:14px}
+.hm-stat{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:16px 18px}
+.hm-stat b{display:block;font-size:28px;letter-spacing:-.6px;font-variant-numeric:tabular-nums}.hm-stat span{color:var(--muted);font-size:12px}
+.hm-stat .bar{margin:10px 0 0}
+.hm-cols{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+.hm-list{list-style:none;padding:6px 18px 12px}
+.hm-list li{display:grid;grid-template-columns:84px 1fr auto;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line);font-size:13px}
+.hm-list li:last-child{border:0}.hm-list b{font-weight:600}.hm-list span{color:var(--muted)}.hm-list em{font-style:normal;color:#cfd0d4;font-size:12px}
+.hm-none{padding:16px 18px}
+.hm-links{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.hm-link{display:flex;flex-direction:column;align-items:flex-start;gap:6px;text-align:left;padding:18px;border-radius:20px;background:var(--panel);border:1px solid var(--line)}
+.hm-link:hover:not(:disabled){border-color:#4d5420;background:#161815}.hm-link b{font-size:16px;margin-top:8px}.hm-link small{color:var(--muted);font-weight:400}
+.hm-two{display:grid;grid-template-columns:1.05fr .95fr;gap:36px;align-items:start;margin-top:22px}
+.hm-about h1{font-size:46px;letter-spacing:-1.6px;line-height:1.08;margin-bottom:22px}
+.hm-points{list-style:none;display:flex;flex-direction:column;gap:14px;margin-bottom:26px}
+.hm-points li{color:var(--muted);font-size:15px;line-height:1.45;padding-left:18px;border-left:2px solid var(--line)}.hm-points b{display:block;color:var(--text);font-size:17px;margin-bottom:2px}
+.hm-big b{font-size:44px;letter-spacing:-1.5px;display:block;line-height:1.05}.hm-big span{color:var(--muted);font-size:13px}
+.hm-h3{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:600;margin:18px 0 6px}
+.hm-verdict{font-size:14px;line-height:1.5;color:#e8e9e4;background:#12150a;border:1px solid #2c3314;border-radius:14px;padding:12px 14px}
+.fbar{display:flex;gap:3px;height:12px;margin:8px 0}.fbar i{border-radius:99px;min-width:8px}
+.flegend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12px;color:var(--muted)}.flegend i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px}
+.fbar .m,.flegend .m{background:#cede62}.fbar .s,.flegend .s{background:#b7a4ff}.fbar .w,.flegend .w{background:#e8b04a}.fbar .i,.flegend .i{background:#5c5c5b}.fbar .b,.flegend .b{background:#ff9a8c}
+.hm-board{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:8px}
+.hm-mini{display:grid;grid-template-columns:120px 1fr 44px;gap:10px;align-items:center;margin:8px 0;font-size:12px;color:var(--muted)}.hm-mini .bar{margin:0}.hm-mini b{color:var(--text);text-align:right}
+@media(max-width:1100px){.hm-stats{grid-template-columns:1fr 1fr}.hm-cols,.hm-two,.hm-board{grid-template-columns:1fr}.hm-links{grid-template-columns:1fr 1fr}}
+
+/* fleet on the side panel, "Change the day" wide and short under the map */
+.fleet{position:sticky;top:12px;max-height:calc(100vh - 28px)}
+.fleet-list{display:flex;flex-direction:column;max-height:none;overflow:auto;flex:1}
+.change-card{display:grid;grid-template-columns:minmax(230px,.75fr) minmax(0,2.4fr);align-items:start}
+.change-card>header,.change-card>p{grid-column:1/-1}
+.change-card>header{padding:12px 18px}
+.change-card>p.pad{padding:6px 18px 0}
+.change-card>.pad{padding:8px 18px 14px}
+.change-card .form-grid{grid-template-columns:repeat(6,minmax(0,1fr))}
+.change-card #add-order{width:auto;margin-top:10px;padding:8px 22px}
+.change-card #order-form{border-left:1px solid var(--line)}
+@media(max-width:1250px){.change-card{grid-template-columns:1fr}.change-card #order-form{border-left:0}.change-card .form-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.fleet{position:static;max-height:520px}}
+
+/* bigger steppers where there is room (title row: City, Strategy) */
+.title-row .stepper,.sel-inline .stepper{gap:10px}
+.sel-inline{font-size:14px;gap:12px}
+.sel-inline .st-arrow{width:36px;height:36px;font-size:20px}
+.sel-inline .st-mid{min-width:170px;gap:6px}
+.sel-inline .st-name{font-size:18px;letter-spacing:-.2px}
+.sel-inline .st-dots{height:6px;gap:5px}
+.sel-inline .st-dots i{width:6px;height:6px}
+.sel-inline .st-dots i.on{width:22px}
+.playbar .sel-inline .st-mid{min-width:96px}.playbar .sel-inline .st-name{font-size:15px}
+.playbar .sel-inline .st-arrow{width:28px;height:28px;font-size:16px}
+
+/* aligned header controls */
+.title-row{align-items:center;flex-wrap:nowrap}
+.ctl-group{display:flex;align-items:center;justify-content:flex-end;gap:34px;margin-left:auto;flex-wrap:nowrap}
+.ctl-group .sel-inline{display:flex;align-items:center;gap:12px;white-space:nowrap}
+.ctl-group .sel-inline .st-mid{min-width:128px}
+.ctl-group .sel-inline .st-name{font-size:17px}
+@media(max-width:1250px){.title-row{flex-wrap:wrap}.ctl-group{gap:18px;flex-wrap:wrap;margin-left:0}}
+
+/* book page uses the full width */
+.book-layout{display:grid;grid-template-columns:minmax(0,760px) minmax(340px,1fr);gap:18px;align-items:start}
+.book-wrap{max-width:none}
+.book-side{display:flex;flex-direction:column;gap:14px;position:sticky;top:12px}
+.sum{list-style:none;display:flex;flex-direction:column}
+.sum li{display:flex;justify-content:space-between;gap:16px;padding:10px 0;border-bottom:1px solid var(--line);font-size:13px}
+.sum li:last-child{border:0}.sum span{color:var(--muted)}.sum b{text-align:right;font-weight:600}
+.guide{width:100%;border-collapse:collapse}.guide th{font-size:11px;color:var(--muted);font-weight:500;padding:12px 18px;text-align:left}
+.guide td{font-size:13px;padding:11px 18px;border-top:1px solid var(--line);text-align:left}
+#book-trucks .hm-mini{grid-template-columns:64px 1fr 92px}
+.opt em{font-style:normal;font-size:10px;color:#7d7e82;margin-top:2px}
+@media(max-width:1150px){.book-layout{grid-template-columns:1fr}.book-side{position:static}}
+
+/* zoomed out: in-use trucks keep a bright yellow glow, idle are dim */
+#lmap.z-low .tkb.travelling,#lmap.z-low .tkb.servicing,#lmap.z-low .tkb.waiting{box-shadow:0 0 0 2px rgba(255,228,92,.4),0 0 12px #ffd400}
+#lmap.z-low .tkb.idle{opacity:.5}

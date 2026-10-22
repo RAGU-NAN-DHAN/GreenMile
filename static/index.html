@@ -4,17 +4,17 @@
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
   <title>GreenMile — Operations</title>
   <link rel="icon" type="image/svg+xml" href="/static/logo.svg">
-  <link rel="stylesheet" href="/static/style.css?v=17">
+  <link rel="stylesheet" href="/static/style.css?v=21">
   <link rel="stylesheet" href="/static/vendor/leaflet/leaflet.css">
   <script defer src="/static/vendor/plotly.min.js"></script>
   <script defer src="/static/vendor/leaflet/leaflet.js"></script>
-  <script defer src="/static/app.js?v=17"></script>
+  <script defer src="/static/app.js?v=21"></script>
 </head>
 <body>
 <div class="shell">
   <nav class="sidebar" aria-label="Main">
     <button class="logo-btn" id="logo-home" aria-label="Home" title="Home"><img class="logo" src="/static/logo.svg" alt="GreenMile"></button>
-    <button class="nav active" data-view="ops" aria-label="Map" title="Operations map"><svg viewBox="0 0 24 24"><path d="M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2z"/><path d="M9 4v14M15 6v14"/></svg><span>Map</span></button>
+    <button class="nav" data-view="ops" aria-label="Map" title="Operations map"><svg viewBox="0 0 24 24"><path d="M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2z"/><path d="M9 4v14M15 6v14"/></svg><span>Map</span></button>
     <button class="nav" data-view="orders" aria-label="Orders" title="Orders and booking"><svg viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13"/><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/></svg><span>Orders</span></button>
     <button class="nav" data-view="book" aria-label="Book" title="Book an order"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="4"/><path d="M12 8v8M8 12h8"/></svg><span>Book</span></button>
     <button class="nav" data-view="vehicle" aria-label="Trucks" title="Truck detail"><svg viewBox="0 0 24 24"><path d="M2 7h11v9H2z"/><path d="M13 10h4l4 4v2h-8z"/><circle cx="6" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg><span>Trucks</span></button>
@@ -33,8 +33,7 @@
       <span class="chip">Solve <b id="c-solve">–</b></span>
       <span class="chip" title="Real road distance of all legs, street map only">Road <b id="c-road">–</b></span>
       <div class="spacer"></div>
-      <label class="chip sel" title="Average driving speed in road mode; one time unit = one minute of driving">Avg speed
-        <select id="speed-kmh" data-stepper><option value="15">15 km/h</option><option value="20">20 km/h</option><option value="25" selected>25 km/h</option><option value="30">30 km/h</option><option value="40">40 km/h</option></select></label>
+      
       <label class="chip sel">Distance
         <select id="routing" data-stepper><option value="road">Road</option><option value="euclid">Straight-line</option></select></label>
       <label class="chip sel">Dataset
@@ -45,56 +44,27 @@
     <div id="message" class="message" role="status" aria-live="polite">Choose a dataset and load the initial routes to begin.</div>
 
     <!-- HOME -->
-    <section id="view-home" class="view" hidden>
-      <div class="home-switch" role="group" aria-label="Home design"><span class="muted small">Design</span><button class="on" data-h="1">1</button><button data-h="2">2</button><button data-h="3">3</button></div>
-
-      <div class="home-v" id="home-v1">
-        <div class="h1-wrap">
-          <img class="h1-logo" src="/static/logo.svg" alt="">
-          <h1>GreenMile</h1>
-          <p class="h1-sub">Live last-mile route planning on real roads.</p>
-          <div class="h1-cta"><button class="btn primary big" data-go="ops">Open dashboard</button><button class="btn big" data-go="book">Book an order</button></div>
-          <div class="h1-stats"><span><b data-live="served">–</b>delivered</span><span><b data-live="working">–</b>trucks working</span><span><b data-live="unassigned">–</b>unassigned</span></div>
-        </div>
-      </div>
-
-      <div class="home-v" id="home-v2" hidden>
-        <div class="h2-head"><h1>Good day, dispatcher</h1><p class="muted" data-live="line">–</p></div>
-        <div class="h2-tiles">
-          <button class="tile-card" data-go="ops"><span class="tc-ico"><svg viewBox="0 0 24 24"><path d="M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2z"/><path d="M9 4v14M15 6v14"/></svg></span><b>Live map</b><small data-live="t-ops">Live fleet map</small></button>
-          <button class="tile-card" data-go="orders"><span class="tc-ico"><svg viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13"/><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/></svg></span><b>Orders</b><small data-live="t-orders">Every order and its status</small></button>
-          <button class="tile-card" data-go="book"><span class="tc-ico"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="4"/><path d="M12 8v8M8 12h8"/></svg></span><b>Book an order</b><small>Three quick steps</small></button>
-          <button class="tile-card" data-go="analytics"><span class="tc-ico"><svg viewBox="0 0 24 24"><path d="M4 20V11M10 20V4M16 20v-6M22 20H2"/></svg></span><b>Analytics</b><small data-live="t-analytics">Charts and event history</small></button>
-        </div>
-      </div>
-
-      <div class="home-v" id="home-v3" hidden>
-        <div class="h3-wrap">
-          <div class="h3-kicker">GreenMile</div>
-          <h1>Plan. Disrupt. Recover.</h1>
-          <div class="h3-steps">
-            <div><i>1</i><b>Plan</b><span>Routes on real roads for every truck.</span></div>
-            <div><i>2</i><b>Disrupt</b><span>Break a truck down or book a new order.</span></div>
-            <div><i>3</i><b>Recover</b><span>Compare three strategies and see the result.</span></div>
-          </div>
-          <button class="btn primary big" data-go="ops">Open dashboard</button>
-          <div class="h3-strip" data-live="strip">–</div>
-        </div>
-      </div>
+    <section id="view-home" class="view">
+      <div class="home-v" id="home-v2"></div>
+      
     </section>
 
     <!-- OPERATIONS -->
-    <section id="view-ops" class="view">
+    <section id="view-ops" class="view" hidden>
       <div class="title-row">
         <div><h1>Operations Dashboard</h1><p class="muted" id="subtitle">No dataset loaded</p></div>
-        <label class="sel-inline" id="city-label">City
+        <div class="ctl-group">
+          <label class="sel-inline" id="city-label">City
           <select id="city" data-stepper><option value="vit">VIT Vellore</option><option value="vellore">Vellore</option><option value="chennai">Chennai</option><option value="bengaluru">Bengaluru</option></select></label>
-        <label class="sel-inline">Strategy
+          <label class="sel-inline">Speed
+            <select id="speed-kmh" data-stepper><option value="15">15 km/h</option><option value="20">20 km/h</option><option value="25" selected>25 km/h</option><option value="30">30 km/h</option><option value="40">40 km/h</option></select></label>
+          <label class="sel-inline">Strategy
           <select id="strategy" data-stepper>
             <option value="replan">OR-Tools re-plan</option>
             <option value="cheapest_insertion">Cheapest insertion</option>
             <option value="do_nothing">Do nothing</option>
           </select></label>
+        </div>
       </div>
       <div class="toolbar">
         <div class="tabs" id="filters">
@@ -137,14 +107,7 @@
         </div>
         <div class="hint"><span>Click a truck to inspect it · ⌖ then click the map to place a new order</span><span id="timeline-status">Viewing the initial plan</span></div>
       </div>
-      <aside class="card fleet" aria-label="Fleet">
-        <header><div><h2>Fleet</h2><span class="muted small" id="fleet-sub">–</span></div><span class="pill" id="fleet-count">0 trucks</span></header>
-        <div class="fleet-sum" id="fleet-sum"></div>
-        <div id="fleet-list" class="fleet-list"><p class="muted small pad">Load a dataset to see the trucks.</p></div>
-      </aside>
-        </div>
-        <div class="ops-side">
-        <section class="card">
+      <section class="card change-card">
           <header><h2>Change the day</h2><span class="pill">All 3 strategies</span></header>
           <p class="muted small pad">Events apply at the displayed time. Completed deliveries stay locked.</p>
           <div class="pad">
@@ -171,7 +134,12 @@
           <header><h2>Event log</h2><span class="pill" id="event-count">0 events</span></header>
           <ul id="event-log" class="log"><li class="muted">No events yet.</li></ul>
         </section>
-      </div>
+        </div>
+        <div class="ops-side"><aside class="card fleet" aria-label="Fleet">
+        <header><div><h2>Fleet</h2><span class="muted small" id="fleet-sub">–</span></div><span class="pill" id="fleet-count">0 trucks</span></header>
+        <div class="fleet-sum" id="fleet-sum"></div>
+        <div id="fleet-list" class="fleet-list"><p class="muted small pad">Load a dataset to see the trucks.</p></div>
+      </aside></div>
       </div>
     </section>
 
@@ -187,7 +155,7 @@
         <section class="card">
           <header><h2>Cargo layout</h2><span class="pill" id="vd-loaded">–</span></header>
           <div class="bars">
-            <div><div class="bar-top"><b id="vd-cap-text">–</b><i class="pill" id="vd-cap-pct">–</i></div><div class="bar"><span id="vd-cap-bar"></span></div><span class="muted small">Capacity used</span></div>
+            <div><div class="bar-top"><b id="vd-cap-text">–</b><i class="pill" id="vd-cap-pct">–</i></div><div class="bar"><span id="vd-cap-bar"></span></div><span class="muted small">Load on board (weight · volume)</span></div>
             <div><div class="bar-top"><b id="vd-prog-text">–</b><i class="pill" id="vd-prog-pct">–</i></div><div class="bar"><span id="vd-prog-bar"></span></div><span class="muted small">Route progress</span></div>
           </div>
           <div class="truck"><div class="trailer" id="tiles"></div><div class="cab"></div><div class="wheels"><i></i><i></i><i></i></div></div>
@@ -226,7 +194,7 @@
       </div>
       <div class="ord-grid">
         <section class="card"><div class="table-scroll ord-table"><table>
-          <thead><tr id="ord-head"><th data-k="id">Order</th><th data-k="status">Status</th><th data-k="truck">Truck</th><th data-k="ready">Window</th><th data-k="arrival">Planned arrival</th><th data-k="slack">Slack</th><th data-k="demand">Demand</th></tr></thead>
+          <thead><tr id="ord-head"><th data-k="id">Order</th><th data-k="status">Status</th><th data-k="truck">Truck</th><th data-k="ready">Window</th><th data-k="arrival">Planned arrival</th><th data-k="slack">Slack</th><th data-k="demand">Parcel</th></tr></thead>
           <tbody id="ord-body"></tbody></table></div></section>
         
       </div>
@@ -235,7 +203,7 @@
     <!-- BOOK -->
     <section id="view-book" class="view" hidden>
       <div class="title-row"><div><h1>Book an order</h1><p class="muted">Pick a place, a parcel size and a delivery time. GreenMile re-plans every strategy and shows the result.</p></div></div>
-      <div class="book-wrap"><aside class="card book" id="book-card">
+      <div class="book-layout"><div class="book-wrap"><aside class="card book" id="book-card">
           <header><div><h2>Book an order</h2><span class="muted small">Three quick steps</span></div><span class="pill" id="book-when">–</span></header>
           <div class="pad">
             <div class="step"><b>1</b> Where should it go?</div>
@@ -244,13 +212,21 @@
             <div id="book-map"></div>
             <p class="muted small" id="book-loc">Search, or click the map to drop a pin</p>
             <div class="step"><b>2</b> Parcel size</div>
-            <div class="opts" id="book-size"><button class="opt" data-d="5">Small<small>5 units</small></button><button class="opt on" data-d="10">Medium<small>10 units</small></button><button class="opt" data-d="20">Large<small>20 units</small></button></div>
+            <div class="opts" id="book-size"><button class="opt" data-d="5">Small<small>25 kg · 0.15 m³</small><em>a few boxes</em></button><button class="opt on" data-d="10">Medium<small>50 kg · 0.30 m³</small><em>a stack of cartons</em></button><button class="opt" data-d="20">Large<small>100 kg · 0.60 m³</small><em>a pallet load</em></button></div>
             <div class="step"><b>3</b> Delivery time</div>
             <div class="opts" id="book-slot"><button class="opt on" data-w="60">Within 1 hour</button><button class="opt" data-w="120">Within 2 hours</button><button class="opt" data-w="0">Anytime today</button></div>
             <button class="btn primary wide" id="book-go" disabled>Book order</button>
             <div id="book-result" class="book-result" hidden></div>
           </div>
-        </aside></div>
+        </aside></div><aside class="book-side">
+        <section class="card"><header><h2>Your order</h2><span class="muted small">updates as you choose</span></header><div class="pad" id="book-summary"></div></section>
+        <section class="card"><header><h2>Parcel sizes</h2><span class="muted small">1 load unit = 5 kg · 0.03 m³</span></header>
+          <table class="guide"><thead><tr><th>Size</th><th>Weight</th><th>Volume</th><th>Typical</th></tr></thead><tbody>
+            <tr><td><b>Small</b></td><td>25 kg</td><td>0.15 m³</td><td>a few boxes</td></tr>
+            <tr><td><b>Medium</b></td><td>50 kg</td><td>0.30 m³</td><td>a stack of cartons</td></tr>
+            <tr><td><b>Large</b></td><td>100 kg</td><td>0.60 m³</td><td>a pallet load</td></tr></tbody></table></section>
+        <section class="card"><header><h2>Space on trucks</h2><span class="muted small">most free first · truck holds 1000 kg · 6 m³</span></header><div class="pad" id="book-trucks"></div></section>
+      </aside></div>
     </section>
 
     <!-- ANALYTICS -->
